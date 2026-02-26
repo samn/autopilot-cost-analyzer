@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - CPU pricing: convert billing API mCPU-hour prices to vCPU-hour (was showing $0.0000)
 
+### Changed
+
+- `watch` command: SUBTYPE column is now hidden when --subtype-label is not set
+
 ### Added
 
 - `watch` command: COST column showing accumulated cost alongside $/HR projected rate

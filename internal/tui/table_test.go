@@ -35,13 +35,16 @@ func TestRenderTable(t *testing.T) {
 	lc := cost.LabelConfig{TeamLabel: "team", WorkloadLabel: "app"}
 	aggs := cost.Aggregate(costs, lc)
 
-	output := RenderTable(aggs)
+	output := RenderTable(aggs, false)
 
-	// Verify header is present
-	for _, header := range []string{"TEAM", "WORKLOAD", "SUBTYPE", "PODS", "CPU REQ", "MEM REQ", "$/HR", "COST", "SPOT"} {
+	// Verify header is present (no SUBTYPE since showSubtype=false)
+	for _, header := range []string{"TEAM", "WORKLOAD", "PODS", "CPU REQ", "MEM REQ", "$/HR", "COST", "SPOT"} {
 		if !strings.Contains(output, header) {
 			t.Errorf("missing %s header", header)
 		}
+	}
+	if strings.Contains(output, "SUBTYPE") {
+		t.Error("SUBTYPE header should not be present when showSubtype is false")
 	}
 
 	// Verify team names appear
@@ -69,7 +72,7 @@ func TestRenderTable(t *testing.T) {
 }
 
 func TestRenderTableEmpty(t *testing.T) {
-	output := RenderTable(nil)
+	output := RenderTable(nil, false)
 
 	// Empty table with no data should still render something (headers + total)
 	if !strings.Contains(output, "TOTAL") {
@@ -87,7 +90,12 @@ func TestRenderTableAllColumns(t *testing.T) {
 		{Key: cost.GroupKey{Team: "alpha", Workload: "api", IsSpot: true}, PodCount: 3, CostPerHour: 0.03, TotalCost: 0.15, TotalCPUVCPU: 3.0, TotalMemGB: 6.0},
 	}
 
-	output := RenderTable(aggs)
+	output := RenderTable(aggs, true)
+
+	// Verify SUBTYPE header is present when showSubtype=true
+	if !strings.Contains(output, "SUBTYPE") {
+		t.Error("missing SUBTYPE header when showSubtype is true")
+	}
 
 	// Verify all teams and workloads appear
 	for _, s := range []string{"zeta", "alpha", "api", "web", "grpc", "yes"} {
@@ -112,7 +120,7 @@ func TestRenderTableMissingLabels(t *testing.T) {
 		{Key: cost.GroupKey{}, PodCount: 5, CostPerHour: 0.10},
 	}
 
-	output := RenderTable(aggs)
+	output := RenderTable(aggs, true)
 
 	// Missing labels should show as "-"
 	if !strings.Contains(output, "-") {

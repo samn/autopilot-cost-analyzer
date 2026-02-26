@@ -103,7 +103,7 @@ func (m Model) View() string {
 		header += fmt.Sprintf("  (error: %v)", m.err)
 	}
 
-	return header + "\n\n" + RenderTable(m.aggs) + "\n\nPress q to quit.\n"
+	return header + "\n\n" + RenderTable(m.aggs, m.lc.SubtypeLabel != "") + "\n\nPress q to quit.\n"
 }
 
 // fetchCosts fetches pod data and calculates costs.
