@@ -7,18 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-
-- CPU pricing: convert billing API mCPU-hour prices to vCPU-hour (was showing $0.0000)
-
-### Changed
-
 - `watch` command: SUBTYPE column is now hidden when --subtype-label is not set
 - Filter out non-Autopilot pods by requiring node names with `gk3-` prefix
-
-### Added
-
 - `watch` command: interactive column sorting with number keys (1-7 or 1-8) and asc/desc toggle
+- `version` subcommand printing version, commit, and build date
+- Makefile for building static binaries with version metadata (supports cross-compilation via GOOS/GOARCH)
+- GitHub Actions release workflow: builds linux-amd64 binary and creates GitHub Release on tag push
+- Release process documentation in plans/003-binary-build-release.md
 - `watch` command: COST column showing accumulated cost alongside $/HR projected rate
 - `watch` command: real-time display of GKE Autopilot workload costs in a terminal table
 - `record` command: periodically write cost snapshots to BigQuery

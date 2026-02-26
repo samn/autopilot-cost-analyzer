@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+
+      - name: Go module cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-${{ runner.os }}-
+
+      - name: Run tests
+        run: go test -race ./...
+
+      - name: Build linux-amd64 binary
+        run: make build GOOS=linux GOARCH=amd64 VERSION=${{ github.ref_name }}
+
+      - name: Extract changelog for this release
+        id: changelog
+        run: |
+          tag="${{ github.ref_name }}"
+          version="${tag#v}"
+          # Extract the section between this version's header and the next version header.
+          # Falls back to the Unreleased section if the exact version isn't found.
+          notes=$(awk -v ver="$version" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]" || (ver == "" && $0 ~ "\\[Unreleased\\]")) found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md)
+          # Write to step output using heredoc delimiter.
+          {
+            echo "notes<<CHANGELOG_EOF"
+            echo "$notes"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.notes }}
+          files: dist/*
+          generate_release_notes: false
