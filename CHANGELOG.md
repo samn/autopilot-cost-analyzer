@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `watch` command: interactive column sorting with number keys (1-7 or 1-8) and asc/desc toggle
 - `watch` command: COST column showing accumulated cost alongside $/HR projected rate
 - `watch` command: real-time display of GKE Autopilot workload costs in a terminal table
 - `record` command: periodically write cost snapshots to BigQuery

@@ -4,7 +4,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,6 +36,9 @@ type Model struct {
 	err        error
 	lastUpdate time.Time
 
+	sortCfg     SortConfig
+	showSubtype bool
+
 	lister   PodLister
 	calc     *cost.Calculator
 	lc       cost.LabelConfig
@@ -48,12 +50,14 @@ type Model struct {
 // NewModel creates a new TUI model.
 func NewModel(ctx context.Context, cancel context.CancelFunc, lister PodLister, calc *cost.Calculator, lc cost.LabelConfig, interval time.Duration) Model {
 	return Model{
-		lister:   lister,
-		calc:     calc,
-		lc:       lc,
-		interval: interval,
-		ctx:      ctx,
-		cancel:   cancel,
+		lister:      lister,
+		calc:        calc,
+		lc:          lc,
+		interval:    interval,
+		ctx:         ctx,
+		cancel:      cancel,
+		sortCfg:     DefaultSort(),
+		showSubtype: lc.SubtypeLabel != "",
 	}
 }
 
@@ -70,6 +74,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			m.cancel()
 			return m, tea.Quit
+		case "1", "2", "3", "4", "5", "6", "7", "8":
+			key := rune(msg.String()[0])
+			if col, ok := ColumnForKey(key, m.showSubtype); ok {
+				if col == m.sortCfg.Column {
+					m.sortCfg.Asc = !m.sortCfg.Asc
+				} else {
+					m.sortCfg = SortConfig{Column: col, Asc: true}
+				}
+			}
+			return m, nil
 		}
 
 	case costDataMsg:
@@ -103,7 +117,14 @@ func (m Model) View() string {
 		header += fmt.Sprintf("  (error: %v)", m.err)
 	}
 
-	return header + "\n\n" + RenderTable(m.aggs, m.lc.SubtypeLabel != "") + "\n\nPress q to quit.\n"
+	// Sort a copy so we don't mutate the stored data.
+	sorted := make([]cost.AggregatedCost, len(m.aggs))
+	copy(sorted, m.aggs)
+	SortAggs(sorted, m.sortCfg)
+
+	help := m.helpText()
+
+	return header + "\n\n" + RenderTable(sorted, m.showSubtype, m.sortCfg) + "\n\n" + help + "\n"
 }
 
 // fetchCosts fetches pod data and calculates costs.
@@ -116,17 +137,15 @@ func (m Model) fetchCosts() tea.Msg {
 	costs := m.calc.CalculateAll(pods)
 	aggs := cost.Aggregate(costs, m.lc)
 
-	sort.Slice(aggs, func(i, j int) bool {
-		if aggs[i].Key.Team != aggs[j].Key.Team {
-			return aggs[i].Key.Team < aggs[j].Key.Team
-		}
-		if aggs[i].Key.Workload != aggs[j].Key.Workload {
-			return aggs[i].Key.Workload < aggs[j].Key.Workload
-		}
-		return aggs[i].Key.Subtype < aggs[j].Key.Subtype
-	})
-
 	return costDataMsg{aggs: aggs, podCount: len(pods)}
+}
+
+// helpText returns the footer help line showing sort key mappings.
+func (m Model) helpText() string {
+	if m.showSubtype {
+		return "Sort: 1=Team 2=Workload 3=Subtype 4=Pods 5=CPU 6=Mem 7=$/hr 8=Cost · q=Quit"
+	}
+	return "Sort: 1=Team 2=Workload 3=Pods 4=CPU 5=Mem 6=$/hr 7=Cost · q=Quit"
 }
 
 // scheduleTick waits for the interval then sends a tick.

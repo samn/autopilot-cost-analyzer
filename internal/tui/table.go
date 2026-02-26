@@ -17,9 +17,22 @@ var (
 	numericStyle = lipgloss.NewStyle().Padding(0, 1).Align(lipgloss.Right)
 )
 
+// sortIndicator returns the header text with a sort direction arrow if this
+// column is the active sort column.
+func sortIndicator(header string, col SortColumn, cfg SortConfig) string {
+	if col != cfg.Column {
+		return header
+	}
+	if cfg.Asc {
+		return header + " ^"
+	}
+	return header + " v"
+}
+
 // RenderTable renders the aggregated costs as a formatted table string.
 // When showSubtype is true, a SUBTYPE column is included.
-func RenderTable(aggs []cost.AggregatedCost, showSubtype bool) string {
+// The sortCfg controls which column header receives a sort indicator arrow.
+func RenderTable(aggs []cost.AggregatedCost, showSubtype bool, sortCfg SortConfig) string {
 	rows := make([][]string, 0, len(aggs)+1)
 
 	var totalCostPerHour, totalCost float64
@@ -60,11 +73,21 @@ func RenderTable(aggs []cost.AggregatedCost, showSubtype bool) string {
 	)
 	rows = append(rows, totalRow)
 
-	headers := []string{"TEAM", "WORKLOAD"}
-	if showSubtype {
-		headers = append(headers, "SUBTYPE")
+	headers := []string{
+		sortIndicator("TEAM", SortByTeam, sortCfg),
+		sortIndicator("WORKLOAD", SortByWorkload, sortCfg),
 	}
-	headers = append(headers, "PODS", "CPU REQ", "MEM REQ", "$/HR", "COST", "SPOT")
+	if showSubtype {
+		headers = append(headers, sortIndicator("SUBTYPE", SortBySubtype, sortCfg))
+	}
+	headers = append(headers,
+		sortIndicator("PODS", SortByPods, sortCfg),
+		sortIndicator("CPU REQ", SortByCPU, sortCfg),
+		sortIndicator("MEM REQ", SortByMem, sortCfg),
+		sortIndicator("$/HR", SortByCostPerHour, sortCfg),
+		sortIndicator("COST", SortByCost, sortCfg),
+		"SPOT",
+	)
 
 	// First numeric column index depends on whether SUBTYPE is shown.
 	numericStart := 2

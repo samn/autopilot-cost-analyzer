@@ -1,0 +1,151 @@
+package tui
+
+import (
+	"sort"
+
+	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+)
+
+// SortColumn identifies which column to sort by.
+type SortColumn int
+
+const (
+	SortByTeam SortColumn = iota
+	SortByWorkload
+	SortBySubtype
+	SortByPods
+	SortByCPU
+	SortByMem
+	SortByCostPerHour
+	SortByCost
+)
+
+// SortConfig holds the current sort column and direction.
+type SortConfig struct {
+	Column SortColumn
+	Asc    bool
+}
+
+// DefaultSort returns the default sort configuration (team ascending).
+func DefaultSort() SortConfig {
+	return SortConfig{Column: SortByTeam, Asc: true}
+}
+
+// SortAggs sorts aggregated costs in place according to the given config.
+// Ties are broken by team → workload → subtype ascending.
+func SortAggs(aggs []cost.AggregatedCost, cfg SortConfig) {
+	sort.SliceStable(aggs, func(i, j int) bool {
+		cmp := compareByColumn(aggs[i], aggs[j], cfg.Column)
+		if cmp != 0 {
+			if cfg.Asc {
+				return cmp < 0
+			}
+			return cmp > 0
+		}
+		// Secondary sort: team → workload → subtype ascending
+		if aggs[i].Key.Team != aggs[j].Key.Team {
+			return aggs[i].Key.Team < aggs[j].Key.Team
+		}
+		if aggs[i].Key.Workload != aggs[j].Key.Workload {
+			return aggs[i].Key.Workload < aggs[j].Key.Workload
+		}
+		return aggs[i].Key.Subtype < aggs[j].Key.Subtype
+	})
+}
+
+// compareByColumn returns -1, 0, or 1 comparing a and b on the given column.
+func compareByColumn(a, b cost.AggregatedCost, col SortColumn) int {
+	switch col {
+	case SortByTeam:
+		return compareStr(a.Key.Team, b.Key.Team)
+	case SortByWorkload:
+		return compareStr(a.Key.Workload, b.Key.Workload)
+	case SortBySubtype:
+		return compareStr(a.Key.Subtype, b.Key.Subtype)
+	case SortByPods:
+		return compareInt(a.PodCount, b.PodCount)
+	case SortByCPU:
+		return compareFloat(a.TotalCPUVCPU, b.TotalCPUVCPU)
+	case SortByMem:
+		return compareFloat(a.TotalMemGB, b.TotalMemGB)
+	case SortByCostPerHour:
+		return compareFloat(a.CostPerHour, b.CostPerHour)
+	case SortByCost:
+		return compareFloat(a.TotalCost, b.TotalCost)
+	default:
+		return 0
+	}
+}
+
+func compareStr(a, b string) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+func compareInt(a, b int) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+func compareFloat(a, b float64) int {
+	if a < b {
+		return -1
+	}
+	if a > b {
+		return 1
+	}
+	return 0
+}
+
+// ColumnForKey maps a number key press to a sort column.
+// Returns the column and true if the key is valid, or false otherwise.
+func ColumnForKey(key rune, showSubtype bool) (SortColumn, bool) {
+	if showSubtype {
+		switch key {
+		case '1':
+			return SortByTeam, true
+		case '2':
+			return SortByWorkload, true
+		case '3':
+			return SortBySubtype, true
+		case '4':
+			return SortByPods, true
+		case '5':
+			return SortByCPU, true
+		case '6':
+			return SortByMem, true
+		case '7':
+			return SortByCostPerHour, true
+		case '8':
+			return SortByCost, true
+		}
+	} else {
+		switch key {
+		case '1':
+			return SortByTeam, true
+		case '2':
+			return SortByWorkload, true
+		case '3':
+			return SortByPods, true
+		case '4':
+			return SortByCPU, true
+		case '5':
+			return SortByMem, true
+		case '6':
+			return SortByCostPerHour, true
+		case '7':
+			return SortByCost, true
+		}
+	}
+	return 0, false
+}

@@ -168,37 +168,28 @@ func TestModelFetchCostsError(t *testing.T) {
 	}
 }
 
-func TestModelFetchCostsSortsResults(t *testing.T) {
-	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
-	startTime := now.Add(-1 * time.Hour)
-
-	lister := &mockPodLister{
-		pods: []kube.PodInfo{
-			kube.NewTestPodInfo("z-1", "default", 500, 512, startTime, false,
-				map[string]string{"team": "zeta", "app": "api"}),
-			kube.NewTestPodInfo("a-1", "default", 500, 512, startTime, false,
-				map[string]string{"team": "alpha", "app": "web"}),
-			kube.NewTestPodInfo("a-2", "default", 500, 512, startTime, false,
-				map[string]string{"team": "alpha", "app": "api"}),
-		},
-	}
+func TestModelViewSortsResults(t *testing.T) {
+	lister := &mockPodLister{}
 	m := testModel(lister)
 
-	msg := m.fetchCosts()
-	dataMsg := msg.(costDataMsg)
+	// Simulate receiving unsorted data
+	m.lastUpdate = time.Now()
+	m.aggs = []cost.AggregatedCost{
+		{Key: cost.GroupKey{Team: "zeta", Workload: "api"}, PodCount: 1, CostPerHour: 0.01},
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 2, CostPerHour: 0.02},
+		{Key: cost.GroupKey{Team: "alpha", Workload: "api"}, PodCount: 3, CostPerHour: 0.03},
+	}
 
-	// Verify sorted by team, then workload
-	if len(dataMsg.aggs) < 3 {
-		t.Fatalf("expected at least 3 groups, got %d", len(dataMsg.aggs))
+	view := m.View()
+
+	// Default sort is team ascending, so alpha should appear before zeta
+	alphaIdx := strings.Index(view, "alpha")
+	zetaIdx := strings.Index(view, "zeta")
+	if alphaIdx < 0 || zetaIdx < 0 {
+		t.Fatalf("expected both alpha and zeta in view:\n%s", view)
 	}
-	if dataMsg.aggs[0].Key.Team != "alpha" || dataMsg.aggs[0].Key.Workload != "api" {
-		t.Errorf("first group should be alpha/api, got %s/%s", dataMsg.aggs[0].Key.Team, dataMsg.aggs[0].Key.Workload)
-	}
-	if dataMsg.aggs[1].Key.Team != "alpha" || dataMsg.aggs[1].Key.Workload != "web" {
-		t.Errorf("second group should be alpha/web, got %s/%s", dataMsg.aggs[1].Key.Team, dataMsg.aggs[1].Key.Workload)
-	}
-	if dataMsg.aggs[2].Key.Team != "zeta" {
-		t.Errorf("third group should be zeta, got %s", dataMsg.aggs[2].Key.Team)
+	if alphaIdx > zetaIdx {
+		t.Errorf("expected alpha before zeta with default sort, got alpha@%d zeta@%d", alphaIdx, zetaIdx)
 	}
 }
 
@@ -209,5 +200,164 @@ func TestModelInit(t *testing.T) {
 	cmd := m.Init()
 	if cmd == nil {
 		t.Fatal("Init should return a command")
+	}
+}
+
+func TestModelKeyPressSortToggle(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModel(lister)
+
+	// Default is team ascending
+	if m.sortCfg.Column != SortByTeam || !m.sortCfg.Asc {
+		t.Fatal("expected default sort to be team ascending")
+	}
+
+	// Press "3" -> PODS (no subtype in testModel)
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'3'}})
+	m2 := updated.(Model)
+	if m2.sortCfg.Column != SortByPods {
+		t.Errorf("expected SortByPods, got %v", m2.sortCfg.Column)
+	}
+	if !m2.sortCfg.Asc {
+		t.Error("expected ascending when switching to new column")
+	}
+
+	// Press "3" again -> toggle to descending
+	updated, _ = m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'3'}})
+	m3 := updated.(Model)
+	if m3.sortCfg.Column != SortByPods {
+		t.Errorf("expected SortByPods, got %v", m3.sortCfg.Column)
+	}
+	if m3.sortCfg.Asc {
+		t.Error("expected descending after toggle")
+	}
+
+	// Press "3" once more -> toggle back to ascending
+	updated, _ = m3.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'3'}})
+	m4 := updated.(Model)
+	if m4.sortCfg.Asc != true {
+		t.Error("expected ascending after second toggle")
+	}
+}
+
+func TestModelKeyPressInvalidKey(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModel(lister)
+
+	// Press "8" which is invalid without subtype (only 1-7 valid)
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'8'}})
+	m2 := updated.(Model)
+	// Sort config should remain unchanged
+	if m2.sortCfg.Column != SortByTeam || !m2.sortCfg.Asc {
+		t.Error("sort config should not change for invalid key")
+	}
+}
+
+func TestModelHelpText(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModel(lister)
+	m.lastUpdate = time.Now()
+	m.aggs = []cost.AggregatedCost{
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 1},
+	}
+
+	view := m.View()
+
+	if !strings.Contains(view, "Sort:") {
+		t.Errorf("expected help text with Sort: prefix in view:\n%s", view)
+	}
+	if !strings.Contains(view, "q=Quit") {
+		t.Errorf("expected q=Quit in help text:\n%s", view)
+	}
+	// Without subtype, should not mention Subtype
+	if strings.Contains(view, "Subtype") {
+		t.Errorf("should not mention Subtype without subtype label:\n%s", view)
+	}
+}
+
+func testModelWithSubtype(lister PodLister) Model {
+	ctx, cancel := context.WithCancel(context.Background())
+	pt := pricing.FromPrices([]pricing.Price{
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.000035},
+		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.OnDemand, UnitPrice: 0.004},
+	})
+	calc := cost.NewCalculator("us-central1", pt, nil)
+	lc := cost.LabelConfig{TeamLabel: "team", WorkloadLabel: "app", SubtypeLabel: "subtype"}
+	return NewModel(ctx, cancel, lister, calc, lc, 5*time.Second)
+}
+
+func TestModelHelpTextWithSubtype(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModelWithSubtype(lister)
+	m.lastUpdate = time.Now()
+	m.aggs = []cost.AggregatedCost{
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web", Subtype: "grpc"}, PodCount: 1},
+	}
+
+	view := m.View()
+
+	if !strings.Contains(view, "3=Subtype") {
+		t.Errorf("expected 3=Subtype in help text with subtype:\n%s", view)
+	}
+	if !strings.Contains(view, "8=Cost") {
+		t.Errorf("expected 8=Cost in help text with subtype:\n%s", view)
+	}
+}
+
+func TestModelSortKeyWithSubtype(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModelWithSubtype(lister)
+
+	// Press "3" -> SUBTYPE (with subtype)
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'3'}})
+	m2 := updated.(Model)
+	if m2.sortCfg.Column != SortBySubtype {
+		t.Errorf("expected SortBySubtype with subtype, got %v", m2.sortCfg.Column)
+	}
+
+	// Press "8" -> COST (valid with subtype)
+	updated, _ = m2.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'8'}})
+	m3 := updated.(Model)
+	if m3.sortCfg.Column != SortByCost {
+		t.Errorf("expected SortByCost, got %v", m3.sortCfg.Column)
+	}
+}
+
+func TestModelViewReflectsSortOrder(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModel(lister)
+	m.lastUpdate = time.Now()
+	m.aggs = []cost.AggregatedCost{
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 1, CostPerHour: 0.01},
+		{Key: cost.GroupKey{Team: "zeta", Workload: "api"}, PodCount: 5, CostPerHour: 0.05},
+	}
+
+	// Sort by pods descending
+	m.sortCfg = SortConfig{Column: SortByPods, Asc: false}
+	view := m.View()
+
+	// zeta (5 pods) should appear before alpha (1 pod)
+	zetaIdx := strings.Index(view, "zeta")
+	alphaIdx := strings.Index(view, "alpha")
+	if zetaIdx < 0 || alphaIdx < 0 {
+		t.Fatalf("expected both teams in view:\n%s", view)
+	}
+	if zetaIdx > alphaIdx {
+		t.Errorf("expected zeta before alpha when sorting by pods desc")
+	}
+}
+
+func TestModelSortIndicatorInView(t *testing.T) {
+	lister := &mockPodLister{}
+	m := testModel(lister)
+	m.lastUpdate = time.Now()
+	m.aggs = []cost.AggregatedCost{
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 1},
+	}
+
+	// Default sort is team ascending
+	view := m.View()
+	if !strings.Contains(view, "TEAM ^") {
+		t.Errorf("expected 'TEAM ^' sort indicator in view:\n%s", view)
 	}
 }
