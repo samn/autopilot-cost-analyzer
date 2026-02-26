@@ -10,10 +10,12 @@ import (
 )
 
 func testPriceTable() pricing.PriceTable {
+	// CPU prices are per-mCPU-hour (as stored by the billing API / cache).
+	// FromPrices converts them to per-vCPU-hour (×1000).
 	return pricing.FromPrices([]pricing.Price{
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.035},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.000035},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.OnDemand, UnitPrice: 0.004},
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.Spot, UnitPrice: 0.01},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.Spot, UnitPrice: 0.00001},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.Spot, UnitPrice: 0.0012},
 	})
 }
@@ -171,7 +173,7 @@ func TestCalculateMissingRegionPrices(t *testing.T) {
 
 	// Use a price table that doesn't have the requested region
 	pt := pricing.FromPrices([]pricing.Price{
-		{Region: "europe-west1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.04},
+		{Region: "europe-west1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.00004},
 	})
 
 	calc := NewCalculator("us-central1", pt, func() time.Time { return now })

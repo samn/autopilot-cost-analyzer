@@ -1,13 +1,18 @@
 package pricing
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestPriceTableLookup(t *testing.T) {
+	// CPU prices are per-mCPU-hour (as stored by the billing API / cache).
+	// FromPrices converts CPU to per-vCPU-hour (×1000).
 	prices := []Price{
-		{Region: "us-central1", ResourceType: CPU, Tier: OnDemand, UnitPrice: 0.035},
+		{Region: "us-central1", ResourceType: CPU, Tier: OnDemand, UnitPrice: 0.000035},
 		{Region: "us-central1", ResourceType: Memory, Tier: OnDemand, UnitPrice: 0.004},
-		{Region: "us-central1", ResourceType: CPU, Tier: Spot, UnitPrice: 0.01},
-		{Region: "europe-west1", ResourceType: CPU, Tier: OnDemand, UnitPrice: 0.04},
+		{Region: "us-central1", ResourceType: CPU, Tier: Spot, UnitPrice: 0.00001},
+		{Region: "europe-west1", ResourceType: CPU, Tier: OnDemand, UnitPrice: 0.00004},
 	}
 
 	pt := FromPrices(prices)
@@ -30,7 +35,7 @@ func TestPriceTableLookup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := pt.Lookup(tt.region, tt.rt, tt.tier)
-			if got != tt.expected {
+			if math.Abs(got-tt.expected) > 1e-9 {
 				t.Errorf("Lookup(%s, %s, %s) = %f, want %f",
 					tt.region, tt.rt, tt.tier, got, tt.expected)
 			}

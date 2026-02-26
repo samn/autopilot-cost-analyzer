@@ -3,20 +3,27 @@ package pricing
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+func approxEqual(a, b, epsilon float64) bool {
+	return math.Abs(a-b) < epsilon
+}
+
 func TestFetchPricesFromFixture(t *testing.T) {
 	skus := []catalogSKU{
 		{
+			// CPU prices from the API are per-mCPU-hour; Nanos: 35000 → $0.000035/mCPU-hr
+			// After conversion: $0.035/vCPU-hr
 			Description: "Autopilot Pod mCPU Requests",
 			GeoTaxonomy: geoTaxonomy{Regions: []string{"us-central1"}},
 			PricingInfo: []skuPricingInfo{
 				{PricingExpression: pricingExpression{
 					TieredRates: []tieredRate{
-						{StartUsageAmount: 0, UnitPrice: unitPrice{CurrencyCode: "USD", Units: "0", Nanos: 35000000}},
+						{StartUsageAmount: 0, UnitPrice: unitPrice{CurrencyCode: "USD", Units: "0", Nanos: 35000}},
 					},
 				}},
 			},
@@ -33,12 +40,13 @@ func TestFetchPricesFromFixture(t *testing.T) {
 			},
 		},
 		{
+			// Spot CPU: Nanos: 10000 → $0.00001/mCPU-hr → $0.01/vCPU-hr
 			Description: "Autopilot Spot Pod mCPU Requests",
 			GeoTaxonomy: geoTaxonomy{Regions: []string{"us-central1"}},
 			PricingInfo: []skuPricingInfo{
 				{PricingExpression: pricingExpression{
 					TieredRates: []tieredRate{
-						{StartUsageAmount: 0, UnitPrice: unitPrice{CurrencyCode: "USD", Units: "0", Nanos: 10000000}},
+						{StartUsageAmount: 0, UnitPrice: unitPrice{CurrencyCode: "USD", Units: "0", Nanos: 10000}},
 					},
 				}},
 			},
@@ -92,22 +100,22 @@ func TestFetchPricesFromFixture(t *testing.T) {
 	pt := FromPrices(prices)
 
 	cpuOnDemand := pt.Lookup("us-central1", CPU, OnDemand)
-	if cpuOnDemand != 0.035 {
+	if !approxEqual(cpuOnDemand, 0.035, 1e-9) {
 		t.Errorf("CPU on-demand price = %f, want 0.035", cpuOnDemand)
 	}
 
 	memOnDemand := pt.Lookup("us-central1", Memory, OnDemand)
-	if memOnDemand != 0.004 {
+	if !approxEqual(memOnDemand, 0.004, 1e-9) {
 		t.Errorf("Memory on-demand price = %f, want 0.004", memOnDemand)
 	}
 
 	cpuSpot := pt.Lookup("us-central1", CPU, Spot)
-	if cpuSpot != 0.01 {
+	if !approxEqual(cpuSpot, 0.01, 1e-9) {
 		t.Errorf("CPU spot price = %f, want 0.01", cpuSpot)
 	}
 
 	memSpot := pt.Lookup("us-central1", Memory, Spot)
-	if memSpot != 0.0012 {
+	if !approxEqual(memSpot, 0.0012, 1e-9) {
 		t.Errorf("Memory spot price = %f, want 0.0012", memSpot)
 	}
 }
@@ -125,7 +133,7 @@ func TestFetchPricesPagination(t *testing.T) {
 						PricingInfo: []skuPricingInfo{
 							{PricingExpression: pricingExpression{
 								TieredRates: []tieredRate{
-									{UnitPrice: unitPrice{Nanos: 35000000}},
+									{UnitPrice: unitPrice{Nanos: 35000}},
 								},
 							}},
 						},
@@ -180,7 +188,7 @@ func TestFetchPricesMultipleRegions(t *testing.T) {
 					PricingInfo: []skuPricingInfo{
 						{PricingExpression: pricingExpression{
 							TieredRates: []tieredRate{
-								{UnitPrice: unitPrice{Nanos: 35000000}},
+								{UnitPrice: unitPrice{Nanos: 35000}},
 							},
 						}},
 					},
@@ -206,11 +214,11 @@ func TestFetchPricesMultipleRegions(t *testing.T) {
 	}
 
 	pt := FromPrices(prices)
-	if pt.Lookup("us-central1", CPU, OnDemand) != 0.035 {
-		t.Error("missing us-central1 price")
+	if !approxEqual(pt.Lookup("us-central1", CPU, OnDemand), 0.035, 1e-9) {
+		t.Errorf("missing us-central1 price, got %f", pt.Lookup("us-central1", CPU, OnDemand))
 	}
-	if pt.Lookup("europe-west1", CPU, OnDemand) != 0.035 {
-		t.Error("missing europe-west1 price")
+	if !approxEqual(pt.Lookup("europe-west1", CPU, OnDemand), 0.035, 1e-9) {
+		t.Errorf("missing europe-west1 price, got %f", pt.Lookup("europe-west1", CPU, OnDemand))
 	}
 }
 

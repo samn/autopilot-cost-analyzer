@@ -142,7 +142,7 @@ func TestRecordSnapshot(t *testing.T) {
 	defer srv.Close()
 
 	pt := pricing.FromPrices([]pricing.Price{
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.035},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.000035},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.OnDemand, UnitPrice: 0.004},
 	})
 

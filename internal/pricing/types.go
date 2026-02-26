@@ -44,10 +44,16 @@ func (pt PriceTable) Lookup(region string, rt ResourceType, tier Tier) float64 {
 }
 
 // FromPrices builds a PriceTable from a slice of Price values.
+// CPU prices from the billing API are per mCPU-hour; this converts them
+// to per vCPU-hour (×1000) so the calculator can use vCPU directly.
 func FromPrices(prices []Price) PriceTable {
 	pt := make(PriceTable, len(prices))
 	for _, p := range prices {
-		pt[PriceKey{Region: p.Region, ResourceType: p.ResourceType, Tier: p.Tier}] = p.UnitPrice
+		up := p.UnitPrice
+		if p.ResourceType == CPU {
+			up *= 1000
+		}
+		pt[PriceKey{Region: p.Region, ResourceType: p.ResourceType, Tier: p.Tier}] = up
 	}
 	return pt
 }

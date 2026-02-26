@@ -25,7 +25,7 @@ func (m *mockPodLister) ListPods(_ context.Context) ([]kube.PodInfo, error) {
 func testModel(lister PodLister) Model {
 	ctx, cancel := context.WithCancel(context.Background())
 	pt := pricing.FromPrices([]pricing.Price{
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.035},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.000035},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.OnDemand, UnitPrice: 0.004},
 	})
 	calc := cost.NewCalculator("us-central1", pt, nil)

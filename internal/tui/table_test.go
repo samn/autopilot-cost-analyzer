@@ -24,9 +24,9 @@ func TestRenderTable(t *testing.T) {
 	}
 
 	pt := pricing.FromPrices([]pricing.Price{
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.035},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.OnDemand, UnitPrice: 0.000035},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.OnDemand, UnitPrice: 0.004},
-		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.Spot, UnitPrice: 0.01},
+		{Region: "us-central1", ResourceType: pricing.CPU, Tier: pricing.Spot, UnitPrice: 0.00001},
 		{Region: "us-central1", ResourceType: pricing.Memory, Tier: pricing.Spot, UnitPrice: 0.0012},
 	})
 
@@ -38,7 +38,7 @@ func TestRenderTable(t *testing.T) {
 	output := RenderTable(aggs)
 
 	// Verify header is present
-	for _, header := range []string{"TEAM", "WORKLOAD", "SUBTYPE", "PODS", "CPU REQ", "MEM REQ", "$/HR", "SPOT"} {
+	for _, header := range []string{"TEAM", "WORKLOAD", "SUBTYPE", "PODS", "CPU REQ", "MEM REQ", "$/HR", "COST", "SPOT"} {
 		if !strings.Contains(output, header) {
 			t.Errorf("missing %s header", header)
 		}
@@ -82,9 +82,9 @@ func TestRenderTableEmpty(t *testing.T) {
 
 func TestRenderTableAllColumns(t *testing.T) {
 	aggs := []cost.AggregatedCost{
-		{Key: cost.GroupKey{Team: "zeta", Workload: "api", Subtype: "grpc"}, PodCount: 1, CostPerHour: 0.01, TotalCPUVCPU: 2.0, TotalMemGB: 4.0},
-		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 2, CostPerHour: 0.02, TotalCPUVCPU: 1.0, TotalMemGB: 2.0},
-		{Key: cost.GroupKey{Team: "alpha", Workload: "api", IsSpot: true}, PodCount: 3, CostPerHour: 0.03, TotalCPUVCPU: 3.0, TotalMemGB: 6.0},
+		{Key: cost.GroupKey{Team: "zeta", Workload: "api", Subtype: "grpc"}, PodCount: 1, CostPerHour: 0.01, TotalCost: 0.05, TotalCPUVCPU: 2.0, TotalMemGB: 4.0},
+		{Key: cost.GroupKey{Team: "alpha", Workload: "web"}, PodCount: 2, CostPerHour: 0.02, TotalCost: 0.10, TotalCPUVCPU: 1.0, TotalMemGB: 2.0},
+		{Key: cost.GroupKey{Team: "alpha", Workload: "api", IsSpot: true}, PodCount: 3, CostPerHour: 0.03, TotalCost: 0.15, TotalCPUVCPU: 3.0, TotalMemGB: 6.0},
 	}
 
 	output := RenderTable(aggs)
@@ -96,9 +96,14 @@ func TestRenderTableAllColumns(t *testing.T) {
 		}
 	}
 
-	// Verify total cost is the sum
+	// Verify total $/HR is the sum
 	if !strings.Contains(output, "$0.0600") {
-		t.Errorf("expected total $0.0600 in output, got:\n%s", output)
+		t.Errorf("expected total $/HR $0.0600 in output, got:\n%s", output)
+	}
+
+	// Verify total accumulated cost is the sum
+	if !strings.Contains(output, "$0.3000") {
+		t.Errorf("expected total COST $0.3000 in output, got:\n%s", output)
 	}
 }
 

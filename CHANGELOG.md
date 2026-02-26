@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- CPU pricing: convert billing API mCPU-hour prices to vCPU-hour (was showing $0.0000)
+
 ### Added
 
+- `watch` command: COST column showing accumulated cost alongside $/HR projected rate
 - `watch` command: real-time display of GKE Autopilot workload costs in a terminal table
 - `record` command: periodically write cost snapshots to BigQuery
 - `setup` command: create BigQuery dataset and table for cost recording

@@ -13,7 +13,7 @@ var (
 	headerStyle = lipgloss.NewStyle().Bold(true).Padding(0, 1)
 	cellStyle   = lipgloss.NewStyle().Padding(0, 1)
 
-	// Right-align numeric columns (PODS=3, CPU REQ=4, MEM REQ=5, $/HR=6).
+	// Right-align numeric columns (PODS=3, CPU REQ=4, MEM REQ=5, $/HR=6, COST=7).
 	numericStyle = lipgloss.NewStyle().Padding(0, 1).Align(lipgloss.Right)
 )
 
@@ -21,7 +21,7 @@ var (
 func RenderTable(aggs []cost.AggregatedCost) string {
 	rows := make([][]string, 0, len(aggs)+1)
 
-	var totalCostPerHour float64
+	var totalCostPerHour, totalCost float64
 	for _, a := range aggs {
 		spot := ""
 		if a.Key.IsSpot {
@@ -35,28 +35,32 @@ func RenderTable(aggs []cost.AggregatedCost) string {
 			fmt.Sprintf("%.2f", a.TotalCPUVCPU),
 			fmt.Sprintf("%.1f GB", a.TotalMemGB),
 			fmt.Sprintf("$%.4f", a.CostPerHour),
+			fmt.Sprintf("$%.4f", a.TotalCost),
 			spot,
 		})
 		totalCostPerHour += a.CostPerHour
+		totalCost += a.TotalCost
 	}
 
 	// Total row
 	rows = append(rows, []string{
 		"TOTAL", "", "", "", "", "",
-		fmt.Sprintf("$%.4f", totalCostPerHour), "",
+		fmt.Sprintf("$%.4f", totalCostPerHour),
+		fmt.Sprintf("$%.4f", totalCost),
+		"",
 	})
 
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderRow(false).
-		Headers("TEAM", "WORKLOAD", "SUBTYPE", "PODS", "CPU REQ", "MEM REQ", "$/HR", "SPOT").
+		Headers("TEAM", "WORKLOAD", "SUBTYPE", "PODS", "CPU REQ", "MEM REQ", "$/HR", "COST", "SPOT").
 		Rows(rows...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			if row == table.HeaderRow {
 				return headerStyle
 			}
 			// Right-align numeric columns
-			if col >= 3 && col <= 6 {
+			if col >= 3 && col <= 7 {
 				return numericStyle
 			}
 			return cellStyle
