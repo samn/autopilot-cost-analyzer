@@ -7,9 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-- `--project` is now a global persistent flag shared by all commands (`watch`, `record`, `setup`) instead of a local flag on `record` and `setup`; the `watch` command can now use `--project` to explicitly set the GCP project for Prometheus/GMP queries
-- GMP utilization queries now use GKE system metrics (`kubernetes_io:container_cpu_core_usage_time`, `kubernetes_io:container_memory_used_bytes`) which are automatically collected by GKE without requiring managed Prometheus collection to be enabled; `--prometheus-url` still uses standard Prometheus metric names
+## [0.1.0] - 2026-02-27
 
 ### Added
 - `--exclude-namespaces` flag to filter out system namespaces (default: `kube-system,gmp-system`), preventing GKE platform pods from polluting cost attribution
@@ -26,8 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Test coverage improvements across all packages (bigquery 84%→89%, kube 72%→76%, pricing 84%→86%)
 - Comprehensive SPEC.md documentation of core data collection pipeline, cost calculation formulas, unit conversions, aggregation logic, and edge cases
 - Tests for init container exclusion from resource requests, memory binary-to-SI unit conversion, partial resource requests, cost linearity, CostPerHour duration independence, nil labels aggregation, namespace-from-first-pod behavior, empty subtype grouping, price table duplicate/passthrough behavior, and catalog SKU edge cases
-
-### Fixed
 - `watch` command: Prometheus fetch errors and utilization status are now displayed in the TUI header instead of being silently written to stderr (invisible in alt-screen mode)
 - BigQuery InsertID now includes Subtype field, preventing silent deduplication of rows that differ only by subtype
 - `record` command: snapshot timestamp is now captured before pod listing to accurately reflect the snapshot window start
@@ -52,3 +48,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - BigQuery schema with day-partitioned timestamp and team/workload clustering
 - Configurable label names via CLI flags (--team-label, --workload-label, --subtype-label)
 - Namespace filtering via --namespace flag
+- GMP utilization queries now use GKE system metrics (`kubernetes_io:container_cpu_core_usage_time`, `kubernetes_io:container_memory_used_bytes`) which are automatically collected by GKE without requiring managed Prometheus collection to be enabled; `--prometheus-url` still uses standard Prometheus metric names
