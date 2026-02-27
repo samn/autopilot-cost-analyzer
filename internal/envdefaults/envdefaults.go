@@ -31,8 +31,8 @@ type Defaults struct {
 type Detector struct {
 	httpClient      *http.Client
 	metadataBaseURL string
-	kubeContext     string   // override for testing; empty means auto-detect
-	kubeContextSet bool     // true when kubeContext was explicitly provided
+	kubeContext     string // override for testing; empty means auto-detect
+	kubeContextSet  bool   // true when kubeContext was explicitly provided
 }
 
 // Option configures a Detector.
@@ -59,7 +59,7 @@ func WithKubeContext(ctx string) Option {
 // NewDetector creates a Detector with the given options.
 func NewDetector(opts ...Option) *Detector {
 	d := &Detector{
-		httpClient: &http.Client{Timeout: 1 * time.Second},
+		httpClient:      &http.Client{Timeout: 1 * time.Second},
 		metadataBaseURL: metadataBaseURL,
 	}
 	for _, opt := range opts {

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-
 	"github.com/samn/autopilot-cost-analyzer/internal/envdefaults"
 )
 

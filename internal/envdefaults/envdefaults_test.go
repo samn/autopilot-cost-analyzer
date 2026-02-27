@@ -49,19 +49,19 @@ func TestParseGKEContext(t *testing.T) {
 			wantOK:      true,
 		},
 		{
-			name:   "non-GKE context",
+			name:    "non-GKE context",
 			context: "minikube",
-			wantOK: false,
+			wantOK:  false,
 		},
 		{
-			name:   "empty context",
+			name:    "empty context",
 			context: "",
-			wantOK: false,
+			wantOK:  false,
 		},
 		{
-			name:   "gke prefix but too few parts",
+			name:    "gke prefix but too few parts",
 			context: "gke_project_region",
-			wantOK: false,
+			wantOK:  false,
 		},
 	}
 
