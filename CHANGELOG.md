@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Tests for init container exclusion from resource requests, memory binary-to-SI unit conversion, partial resource requests, cost linearity, CostPerHour duration independence, nil labels aggregation, namespace-from-first-pod behavior, empty subtype grouping, price table duplicate/passthrough behavior, and catalog SKU edge cases
 
 ### Fixed
+- `watch` command: Prometheus fetch errors and utilization status are now displayed in the TUI header instead of being silently written to stderr (invisible in alt-screen mode)
 - BigQuery InsertID now includes Subtype field, preventing silent deduplication of rows that differ only by subtype
 - `record` command: snapshot timestamp is now captured before pod listing to accurately reflect the snapshot window start
 - `record` command: `--dry-run` flag to log rows without writing to BigQuery

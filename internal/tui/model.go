@@ -4,7 +4,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,8 +20,10 @@ type PodLister interface {
 
 // costDataMsg carries refreshed cost data to the model.
 type costDataMsg struct {
-	aggs     []cost.AggregatedCost
-	podCount int
+	aggs         []cost.AggregatedCost
+	podCount     int
+	promErr      error // non-nil if Prometheus fetch failed
+	utilPodCount int   // number of pods with utilization data
 }
 
 // errMsg carries errors from async operations.
@@ -41,6 +42,10 @@ type Model struct {
 	sortCfg         SortConfig
 	showSubtype     bool
 	showUtilization bool
+
+	// Prometheus status (displayed in header when utilization is enabled).
+	promErr      error // last Prometheus fetch error (nil = OK)
+	utilPodCount int   // number of pods with utilization data
 
 	lister     PodLister
 	calc       *cost.Calculator
@@ -96,6 +101,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.aggs = msg.aggs
 		m.podCount = msg.podCount
 		m.err = nil
+		m.promErr = msg.promErr
+		m.utilPodCount = msg.utilPodCount
 		m.lastUpdate = time.Now()
 		return m, m.scheduleTick
 
@@ -123,6 +130,17 @@ func (m Model) View() string {
 		header += fmt.Sprintf("  (error: %v)", m.err)
 	}
 
+	if m.showUtilization {
+		switch {
+		case m.promErr != nil:
+			header += fmt.Sprintf("  (prometheus error: %v)", m.promErr)
+		case m.utilPodCount == 0:
+			header += "  (prometheus: no utilization data)"
+		default:
+			header += fmt.Sprintf("  (utilization: %d pods)", m.utilPodCount)
+		}
+	}
+
 	// Sort a copy so we don't mutate the stored data.
 	sorted := make([]cost.AggregatedCost, len(m.aggs))
 	copy(sorted, m.aggs)
@@ -141,18 +159,20 @@ func (m Model) fetchCosts() tea.Msg {
 	}
 
 	var usage map[prometheus.PodKey]prometheus.PodUsage
+	var promErr error
 	if m.promClient != nil {
-		usage, err = m.promClient.FetchUsage(m.ctx)
-		if err != nil {
-			// Log warning but continue without utilization data
-			fmt.Fprintf(os.Stderr, "Warning: failed to fetch utilization metrics: %v\n", err)
-		}
+		usage, promErr = m.promClient.FetchUsage(m.ctx)
 	}
 
 	costs := m.calc.CalculateAll(pods)
 	aggs := cost.AggregateWithUtilization(costs, m.lc, usage)
 
-	return costDataMsg{aggs: aggs, podCount: len(pods)}
+	return costDataMsg{
+		aggs:         aggs,
+		podCount:     len(pods),
+		promErr:      promErr,
+		utilPodCount: len(usage),
+	}
 }
 
 // helpText returns the footer help line showing sort key mappings.
