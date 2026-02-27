@@ -130,6 +130,59 @@ golangci-lint run ./...
 go build ./...
 ```
 
+## Releasing
+
+Releases are automated via GitHub Actions. Pushing a `v`-prefixed tag triggers
+the [release workflow](.github/workflows/release.yaml), which runs tests, builds
+a static `linux/amd64` binary, and creates a GitHub Release with changelog notes.
+
+### Steps
+
+1. **Update the changelog.** Move items from `[Unreleased]` in `CHANGELOG.md`
+   into a new version section:
+
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
+
+   ### Added
+   - ...
+   ```
+
+   Leave an empty `## [Unreleased]` header at the top for future changes.
+
+2. **Commit the changelog.**
+
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "Release vX.Y.Z"
+   ```
+
+3. **Tag and push.**
+
+   ```bash
+   git tag vX.Y.Z
+   git push origin main vX.Y.Z
+   ```
+
+4. **Verify.** The [Release](https://github.com/samn/autopilot-cost-analyzer/actions/workflows/release.yaml)
+   action will build the binary and create the GitHub Release. The release body
+   is extracted automatically from the matching `CHANGELOG.md` section.
+
+### Version injection
+
+Version metadata is injected at build time via `-ldflags` (see `Makefile`).
+The `version` subcommand prints the tag, short commit hash, and build
+timestamp. During development the version defaults to `dev`.
+
+### Building locally
+
+```bash
+make build                          # linux/amd64 (default)
+make build GOOS=darwin GOARCH=arm64 # macOS Apple Silicon
+```
+
+Binaries are written to `dist/`.
+
 ## License
 
 MIT
