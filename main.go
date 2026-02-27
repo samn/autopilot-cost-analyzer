@@ -10,6 +10,10 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	cleanup, err := appSentry.Init(cmd.Version())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to initialize Sentry: %v\n", err)
@@ -19,6 +23,7 @@ func main() {
 
 	if err := cmd.Execute(); err != nil {
 		appSentry.CaptureError(err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
