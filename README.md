@@ -48,6 +48,54 @@ docker run --rm autopilot-cost-analyzer record \
   --cluster-name my-cluster
 ```
 
+## Permissions
+
+### Kubernetes RBAC
+
+The tool only needs read access to pods. It does not create, modify, or delete any Kubernetes resources.
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autopilot-cost-analyzer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: autopilot-cost-analyzer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: autopilot-cost-analyzer
+subjects:
+- kind: ServiceAccount
+  name: autopilot-cost-analyzer
+  namespace: <namespace>
+```
+
+To restrict to specific namespaces, use a `Role` + `RoleBinding` per namespace instead of `ClusterRole`.
+
+### GCP IAM
+
+All GCP API calls use [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials). On GKE, use [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) to bind the Kubernetes ServiceAccount to a GCP service account with the required roles.
+
+| Role | Used by | Purpose |
+|------|---------|---------|
+| `roles/billing.viewer` | `watch`, `record` | Read Autopilot pricing SKUs from the Cloud Billing Catalog API |
+| `roles/bigquery.dataEditor` | `record` | Stream-insert cost snapshots into BigQuery |
+| `roles/bigquery.dataOwner` | `setup` | Create BigQuery datasets and tables (only needed once) |
+| `roles/monitoring.metricReader` | `watch`, `record` | Query CPU/memory utilization via GCP Managed Prometheus |
+
+**Notes:**
+- `roles/monitoring.metricReader` is only needed when using GCP Managed Prometheus (the default when `--project` is set). It is not needed with `--prometheus-url` (custom Prometheus endpoint) or `--dry-run`.
+- `roles/bigquery.dataEditor` is not needed in `--dry-run` mode.
+- If you pre-create the dataset and table manually, `roles/bigquery.dataEditor` is sufficient for `setup` as well.
+
 ## Usage
 
 ### Watch costs in real-time

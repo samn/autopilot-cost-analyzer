@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - `unmatched-pods` command to list running pods missing the configured team or workload labels, grouped by base name (with Kubernetes random suffixes stripped) and namespace
 - Dockerfile for running autopilot-cost-analyzer from a GitHub Release binary (`distroless/static` runtime, `nonroot` user, `VERSION` build arg defaults to latest release)
+- README: Permissions section documenting required Kubernetes RBAC and GCP IAM roles for each command
 
 ## [0.1.0] - 2026-02-27
 
