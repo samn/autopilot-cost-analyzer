@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-28
+
 ### Added
 - Sentry error reporting: errors and panics are automatically sent to Sentry when the `SENTRY_DSN` environment variable is set (no tracing, error reporting only)
 - `unmatched-pods` command to list running pods missing the configured team or workload labels, grouped by base name (with Kubernetes random suffixes stripped) and namespace
