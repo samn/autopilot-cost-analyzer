@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Release workflow now requires CI (lint, build, tests) to pass before creating a GitHub Release
+
 ## [0.2.0] - 2026-02-28
 
 ### Added
