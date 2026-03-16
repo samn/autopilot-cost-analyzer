@@ -76,6 +76,10 @@ func (sc *StandardCalculator) CalculateAll(pods []kube.PodInfo) []PodCost {
 		cpuPrice := sc.prices.Lookup(sc.region, node.MachineFamily, pricing.CPU, tier)
 		memPrice := sc.prices.Lookup(sc.region, node.MachineFamily, pricing.Memory, tier)
 
+		if cpuPrice == 0 && memPrice == 0 && node.MachineFamily != "" {
+			log.Printf("Warning: no %s prices for family=%q region=%q on node %q; pods will show $0", tier, node.MachineFamily, sc.region, nodeName)
+		}
+
 		nodeCPUCostPerHr := node.VCPU * cpuPrice
 		nodeMemCostPerHr := node.MemoryGB * memPrice
 
@@ -88,6 +92,12 @@ func (sc *StandardCalculator) CalculateAll(pods []kube.PodInfo) []PodCost {
 
 		for _, i := range podIndices {
 			pod := pods[i]
+			// Propagate spot status from the node to the pod so that
+			// downstream aggregation correctly groups standard pods by
+			// their actual scheduling tier instead of relying on pod-level
+			// NodeSelector labels (which are typically absent for standard
+			// GKE workloads).
+			pod.IsSpot = node.IsSpot
 			durationHours := sc.durationHours(pod)
 
 			var cpuShare, memShare float64

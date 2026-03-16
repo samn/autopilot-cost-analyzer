@@ -233,7 +233,7 @@ func TestComputePriceTableLookupMissing(t *testing.T) {
 }
 
 func TestExtractComputePricesAllFamilies(t *testing.T) {
-	families := []string{"N2", "E2", "N1", "C3", "C3D", "T2D", "T2A", "N2D", "N4", "C4", "M3", "A2", "G2"}
+	families := []string{"N2", "E2", "N1", "C2", "C2D", "C3", "C3D", "C4", "C4A", "T2D", "T2A", "N2D", "N4", "M3", "A2", "A3", "G2", "H3", "X4", "Z3"}
 	for _, fam := range families {
 		sku := catalogSKU{
 			Description: fam + " Instance Core running in Americas",
@@ -283,5 +283,53 @@ func TestExtractComputePricesSpotDetection(t *testing.T) {
 	}
 	if prices[0].ResourceType != Memory {
 		t.Errorf("expected Memory, got %s", prices[0].ResourceType)
+	}
+}
+
+func TestExtractComputePricesArchQualifier(t *testing.T) {
+	tests := []struct {
+		desc   string
+		family string
+		tier   Tier
+		rt     ResourceType
+	}{
+		{"T2D AMD Instance Core running in Americas", "t2d", OnDemand, CPU},
+		{"Spot Preemptible T2D AMD Instance Core running in Americas", "t2d", Spot, CPU},
+		{"T2D AMD Instance Ram running in Americas", "t2d", OnDemand, Memory},
+		{"T2A Arm Instance Core running in Americas", "t2a", OnDemand, CPU},
+		{"Spot Preemptible T2A Arm Instance Ram running in Americas", "t2a", Spot, Memory},
+		{"N2D AMD Instance Core running in Americas", "n2d", OnDemand, CPU},
+		{"Spot Preemptible N2D AMD Instance Core running in Americas", "n2d", Spot, CPU},
+		{"C2D AMD Instance Ram running in EMEA", "c2d", OnDemand, Memory},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			sku := catalogSKU{
+				Description: tt.desc,
+				GeoTaxonomy: geoTaxonomy{Regions: []string{"us-central1"}},
+				PricingInfo: []skuPricingInfo{
+					{PricingExpression: pricingExpression{
+						TieredRates: []tieredRate{
+							{UnitPrice: unitPrice{Nanos: 10000000}},
+						},
+					}},
+				},
+			}
+
+			prices := extractComputePrices(sku)
+			if len(prices) != 1 {
+				t.Fatalf("expected 1 price, got %d", len(prices))
+			}
+			if prices[0].MachineFamily != tt.family {
+				t.Errorf("family = %s, want %s", prices[0].MachineFamily, tt.family)
+			}
+			if prices[0].Tier != tt.tier {
+				t.Errorf("tier = %s, want %s", prices[0].Tier, tt.tier)
+			}
+			if prices[0].ResourceType != tt.rt {
+				t.Errorf("resource = %s, want %s", prices[0].ResourceType, tt.rt)
+			}
+		})
 	}
 }

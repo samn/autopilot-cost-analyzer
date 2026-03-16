@@ -165,6 +165,52 @@ func TestStandardCalculatorSpotNode(t *testing.T) {
 	}
 }
 
+func TestStandardCalculatorSpotPropagation(t *testing.T) {
+	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
+	startTime := now.Add(-1 * time.Hour)
+
+	sc := NewStandardCalculator("us-central1", testComputePriceTable(), func() time.Time { return now })
+	sc.SetNodes([]kube.NodeInfo{
+		{Name: "gke-spot-1", MachineType: "n2-standard-4", MachineFamily: "n2", VCPU: 4, MemoryGB: 16, IsSpot: true},
+		{Name: "gke-ondemand-1", MachineType: "n2-standard-4", MachineFamily: "n2", VCPU: 4, MemoryGB: 16, IsSpot: false},
+	})
+
+	pods := []kube.PodInfo{
+		// Pod on spot node without spot NodeSelector (common for standard GKE)
+		kube.NewTestPodInfoOnNode("spot-pod", "default", 2000, 8000, startTime, false, nil, "gke-spot-1"),
+		// Pod on on-demand node
+		kube.NewTestPodInfoOnNode("ondemand-pod", "default", 2000, 8000, startTime, false, nil, "gke-ondemand-1"),
+	}
+
+	costs := sc.CalculateAll(pods)
+	if len(costs) != 2 {
+		t.Fatalf("expected 2 costs, got %d", len(costs))
+	}
+
+	var spotCost, ondemandCost PodCost
+	for _, c := range costs {
+		if c.Pod.Name == "spot-pod" {
+			spotCost = c
+		} else {
+			ondemandCost = c
+		}
+	}
+
+	// Spot status should be propagated from the node
+	if !spotCost.Pod.IsSpot {
+		t.Error("pod on spot node should have IsSpot=true propagated from node")
+	}
+	if ondemandCost.Pod.IsSpot {
+		t.Error("pod on on-demand node should have IsSpot=false")
+	}
+
+	// Spot pod should be cheaper than on-demand pod (same resources)
+	if spotCost.CostPerHour >= ondemandCost.CostPerHour {
+		t.Errorf("spot pod (%.4f/hr) should be cheaper than on-demand pod (%.4f/hr)",
+			spotCost.CostPerHour, ondemandCost.CostPerHour)
+	}
+}
+
 func TestStandardCalculatorMultipleNodes(t *testing.T) {
 	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
 	startTime := now.Add(-1 * time.Hour)

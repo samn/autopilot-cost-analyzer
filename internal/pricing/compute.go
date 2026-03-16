@@ -13,12 +13,17 @@ const (
 )
 
 // computeSKURegex matches Compute Engine instance Core/Ram SKUs.
+// Some families include an architecture qualifier (e.g. "AMD", "Arm") between
+// the family name and "Instance".
 // Examples:
 //   - "N2 Instance Core running in Americas"
 //   - "Spot Preemptible N2 Instance Core running in Americas"
 //   - "E2 Instance Ram running in EMEA"
+//   - "T2D AMD Instance Core running in Americas"
+//   - "Spot Preemptible T2D AMD Instance Core running in Americas"
+//   - "T2A Arm Instance Core running in Americas"
 var computeSKURegex = regexp.MustCompile(
-	`^(Spot Preemptible )?(N2|E2|N1|C3|C3D|T2D|T2A|N2D|N4|C4|M3|A2|G2) Instance (Core|Ram) running in`,
+	`^(Spot Preemptible )?(N2|E2|N1|C2|C2D|C3|C3D|C4|C4A|T2D|T2A|N2D|N4|M3|A2|A3|G2|H3|X4|Z3)(?: \w+)? Instance (Core|Ram) running in`,
 )
 
 // ComputePrice represents the unit price for a specific machine family resource in a region and tier.

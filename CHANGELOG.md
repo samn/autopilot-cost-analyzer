@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `cost_mode` field in BigQuery/Parquet schema to distinguish pricing models
 - MODE column in TUI `watch` display (shown when `--mode all`)
 
+### Fixed
+- Standard GKE pods on spot nodes now correctly show as SPOT in the output. Previously, spot status was derived only from the pod's NodeSelector labels (used by Autopilot) instead of the actual node's `cloud.google.com/gke-spot` label, causing most standard spot pods to appear as on-demand.
+- Added missing Compute Engine machine families (C2, C2D, C4A, A3, H3, X4, Z3) to pricing SKU matching. Pods on nodes with these families previously showed $0 cost because prices were silently not found.
+- Added warning log when Compute Engine price lookup returns $0 for a known machine family, making pricing gaps easier to diagnose.
+
 ### Changed
 - Default behavior now analyzes both Autopilot and standard GKE workloads (`--mode all`). Use `--mode autopilot` for previous behavior.
 - Kubernetes RBAC now requires `list` permission on `nodes` (in addition to `pods`) for standard GKE cost attribution
