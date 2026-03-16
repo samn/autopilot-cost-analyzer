@@ -1,4 +1,4 @@
-// Package cost provides cost calculation and aggregation for GKE Autopilot pods.
+// Package cost provides cost calculation and aggregation for GKE pods.
 package cost
 
 import (
@@ -21,7 +21,12 @@ type PodCost struct {
 	MemCostPerHour float64
 }
 
-// Calculator computes costs for pods given a pricing table.
+// PodCostCalculator is the interface for calculating costs for a list of pods.
+type PodCostCalculator interface {
+	CalculateAll(pods []kube.PodInfo) []PodCost
+}
+
+// Calculator computes costs for Autopilot pods given a pricing table.
 type Calculator struct {
 	prices pricing.PriceTable
 	region string
@@ -83,4 +88,29 @@ func (c *Calculator) durationHours(pod kube.PodInfo) float64 {
 		return 0
 	}
 	return d.Hours()
+}
+
+// PartitionAndCalculate computes pod costs using the appropriate calculator(s).
+// Autopilot pods (IsAutopilot=true) are routed to autopilotCalc, others to standardCalc.
+// Either calculator may be nil if only one cost mode is active.
+func PartitionAndCalculate(pods []kube.PodInfo, autopilotCalc *Calculator, standardCalc *StandardCalculator) []PodCost {
+	switch {
+	case autopilotCalc != nil && standardCalc != nil:
+		var autopilotPods, standardPods []kube.PodInfo
+		for _, p := range pods {
+			if p.IsAutopilot {
+				autopilotPods = append(autopilotPods, p)
+			} else {
+				standardPods = append(standardPods, p)
+			}
+		}
+		allCosts := autopilotCalc.CalculateAll(autopilotPods)
+		return append(allCosts, standardCalc.CalculateAll(standardPods)...)
+	case autopilotCalc != nil:
+		return autopilotCalc.CalculateAll(pods)
+	case standardCalc != nil:
+		return standardCalc.CalculateAll(pods)
+	default:
+		return nil
+	}
 }

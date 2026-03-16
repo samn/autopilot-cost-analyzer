@@ -17,6 +17,7 @@ var (
 	project           string
 	excludeNamespaces []string
 	prometheusURL     string
+	mode              string
 )
 
 // newDetector is overridable for testing.
@@ -31,6 +32,9 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 		d := newDetector()
 		applyDefaults(d, cmd)
+		if err := validateMode(); err != nil {
+			return err
+		}
 		return nil
 	},
 }
@@ -44,6 +48,7 @@ func init() {
 	rootCmd.PersistentFlags().StringSliceVar(&excludeNamespaces, "exclude-namespaces", []string{"kube-system", "gmp-system"}, "Namespaces to exclude from pod listing (comma-separated)")
 	rootCmd.PersistentFlags().StringVar(&prometheusURL, "prometheus-url", "", "Prometheus API base URL (defaults to GCP Managed Prometheus when project is available)")
 	rootCmd.PersistentFlags().StringVar(&project, "project", "", "GCP project ID (auto-detected from environment)")
+	rootCmd.PersistentFlags().StringVar(&mode, "mode", "all", "Cost calculation mode: autopilot, standard, or all")
 }
 
 // applyDefaults fills in missing flag values from environment detection.
@@ -80,6 +85,15 @@ func joinStrings(ss []string) string {
 		result += s
 	}
 	return result
+}
+
+func validateMode() error {
+	switch mode {
+	case "autopilot", "standard", "all":
+		return nil
+	default:
+		return fmt.Errorf("--mode must be one of: autopilot, standard, all (got %q)", mode)
+	}
 }
 
 // Execute runs the root command.

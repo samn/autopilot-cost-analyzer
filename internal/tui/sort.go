@@ -13,6 +13,7 @@ const (
 	SortByTeam SortColumn = iota
 	SortByWorkload
 	SortBySubtype
+	SortByMode
 	SortByPods
 	SortByCPU
 	SortByMem
@@ -21,6 +22,54 @@ const (
 	SortByCPUUtil
 	SortByWaste
 )
+
+// columnDef describes a single table column.
+type columnDef struct {
+	header   string     // display header text
+	sortCol  SortColumn // sort column constant (used for key mapping and sort indicators)
+	sortable bool       // whether this column supports sorting
+	numeric  bool       // whether to right-align
+	helpName string     // short name for help footer (empty = use header)
+}
+
+// ColumnVisibility controls which optional columns are shown.
+type ColumnVisibility struct {
+	Subtype     bool
+	Mode        bool
+	Utilization bool
+}
+
+// visibleColumns returns the ordered column definitions for the current visibility settings.
+// This is the single source of truth for column ordering — table.go, sort.go, and model.go
+// all derive their column lists from this function.
+func visibleColumns(vis ColumnVisibility) []columnDef {
+	cols := []columnDef{
+		{header: "TEAM", sortCol: SortByTeam, sortable: true, helpName: "Team"},
+		{header: "WORKLOAD", sortCol: SortByWorkload, sortable: true, helpName: "Workload"},
+	}
+	if vis.Subtype {
+		cols = append(cols, columnDef{header: "SUBTYPE", sortCol: SortBySubtype, sortable: true, helpName: "Subtype"})
+	}
+	if vis.Mode {
+		cols = append(cols, columnDef{header: "MODE", sortCol: SortByMode, sortable: true, helpName: "Mode"})
+	}
+	cols = append(cols,
+		columnDef{header: "PODS", sortCol: SortByPods, sortable: true, numeric: true, helpName: "Pods"},
+		columnDef{header: "CPU REQ", sortCol: SortByCPU, sortable: true, numeric: true, helpName: "CPU"},
+		columnDef{header: "MEM REQ", sortCol: SortByMem, sortable: true, numeric: true, helpName: "Mem"},
+		columnDef{header: "$/HR", sortCol: SortByCostPerHour, sortable: true, numeric: true, helpName: "$/hr"},
+		columnDef{header: "COST", sortCol: SortByCost, sortable: true, numeric: true, helpName: "Cost"},
+		columnDef{header: "SPOT", sortable: false},
+	)
+	if vis.Utilization {
+		cols = append(cols,
+			columnDef{header: "CPU%", sortCol: SortByCPUUtil, sortable: true, numeric: true, helpName: "CPU%"},
+			columnDef{header: "MEM%", sortable: false, numeric: true},
+			columnDef{header: "WASTE", sortCol: SortByWaste, sortable: true, numeric: true, helpName: "Waste"},
+		)
+	}
+	return cols
+}
 
 // SortConfig holds the current sort column and direction.
 type SortConfig struct {
@@ -64,6 +113,8 @@ func compareByColumn(a, b cost.AggregatedCost, col SortColumn) int {
 		return compareStr(a.Key.Workload, b.Key.Workload)
 	case SortBySubtype:
 		return compareStr(a.Key.Subtype, b.Key.Subtype)
+	case SortByMode:
+		return compareStr(a.CostMode, b.CostMode)
 	case SortByPods:
 		return compareInt(a.PodCount, b.PodCount)
 	case SortByCPU:
@@ -115,14 +166,16 @@ func compareFloat(a, b float64) int {
 
 // ColumnForKey maps a number key press to a sort column.
 // Returns the column and true if the key is valid, or false otherwise.
-func ColumnForKey(key rune, showSubtype, showUtilization bool) (SortColumn, bool) {
-	cols := []SortColumn{SortByTeam, SortByWorkload}
-	if showSubtype {
-		cols = append(cols, SortBySubtype)
-	}
-	cols = append(cols, SortByPods, SortByCPU, SortByMem, SortByCostPerHour, SortByCost)
-	if showUtilization {
-		cols = append(cols, SortByCPUUtil, SortByWaste)
+func ColumnForKey(key rune, showSubtype, showUtilization, showMode bool) (SortColumn, bool) {
+	vis := ColumnVisibility{Subtype: showSubtype, Mode: showMode, Utilization: showUtilization}
+	defs := visibleColumns(vis)
+
+	// Build sortable column list
+	var cols []SortColumn
+	for _, d := range defs {
+		if d.sortable {
+			cols = append(cols, d.sortCol)
+		}
 	}
 
 	// Keys '1'-'9' map to indices 0-8, '0' maps to index 9.

@@ -311,23 +311,97 @@ func TestListPodsFiltersNonAutopilotNodes(t *testing.T) {
 		},
 	}
 
-	client := fake.NewSimpleClientset(pods...)
-	pl, err := NewPodLister(WithClient(client))
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("autopilot mode", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeAutopilot))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	result, err := pl.ListPods(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	if len(result) != 1 {
-		t.Fatalf("expected 1 pod (autopilot only), got %d", len(result))
-	}
-	if result[0].Name != "autopilot-pod" {
-		t.Errorf("expected autopilot-pod, got %s", result[0].Name)
-	}
+		if len(result) != 1 {
+			t.Fatalf("expected 1 pod (autopilot only), got %d", len(result))
+		}
+		if result[0].Name != "autopilot-pod" {
+			t.Errorf("expected autopilot-pod, got %s", result[0].Name)
+		}
+		if !result[0].IsAutopilot {
+			t.Error("expected IsAutopilot = true")
+		}
+	})
+
+	t.Run("standard mode", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeStandard))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(result) != 1 {
+			t.Fatalf("expected 1 pod (standard only), got %d", len(result))
+		}
+		if result[0].Name != "standard-pod" {
+			t.Errorf("expected standard-pod, got %s", result[0].Name)
+		}
+		if result[0].IsAutopilot {
+			t.Error("expected IsAutopilot = false")
+		}
+	})
+
+	t.Run("all mode", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeAll))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Should include autopilot and standard, but not unscheduled
+		if len(result) != 2 {
+			t.Fatalf("expected 2 pods (autopilot + standard), got %d", len(result))
+		}
+		names := map[string]bool{}
+		for _, p := range result {
+			names[p.Name] = true
+		}
+		if !names["autopilot-pod"] {
+			t.Error("expected autopilot-pod")
+		}
+		if !names["standard-pod"] {
+			t.Error("expected standard-pod")
+		}
+	})
+
+	t.Run("default mode is all", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Default mode is all — includes both autopilot and standard
+		if len(result) != 2 {
+			t.Fatalf("expected 2 pods (default=all), got %d", len(result))
+		}
+	})
 }
 
 func TestIsAutopilotNode(t *testing.T) {
@@ -669,6 +743,127 @@ func TestListPodsExcludeNamespaces(t *testing.T) {
 		}
 		if result[0].Name != "app-pod" {
 			t.Errorf("expected app-pod, got %s", result[0].Name)
+		}
+	})
+}
+
+func TestHasAutopilotLabels(t *testing.T) {
+	tests := []struct {
+		name     string
+		labels   map[string]string
+		expected bool
+	}{
+		{"no labels", nil, false},
+		{"empty labels", map[string]string{}, false},
+		{"autopilot label", map[string]string{"autopilot.gke.io/something": "true"}, true},
+		{"unrelated label", map[string]string{"app": "web"}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasAutopilotLabels(tt.labels); got != tt.expected {
+				t.Errorf("hasAutopilotLabels(%v) = %v, want %v", tt.labels, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestHasNodePoolLabel(t *testing.T) {
+	tests := []struct {
+		name     string
+		labels   map[string]string
+		expected bool
+	}{
+		{"no labels", nil, false},
+		{"has nodepool label", map[string]string{"cloud.google.com/gke-nodepool": "pool-1"}, true},
+		{"unrelated labels", map[string]string{"app": "web"}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasNodePoolLabel(tt.labels); got != tt.expected {
+				t.Errorf("hasNodePoolLabel(%v) = %v, want %v", tt.labels, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestIncludeNodeLabelFallback(t *testing.T) {
+	startTime := metav1.NewTime(time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC))
+
+	// Pod on a custom-named node with autopilot labels
+	autopilotPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ap-pod", Namespace: "default",
+			Labels: map[string]string{"autopilot.gke.io/resource-adjustment": "true"},
+		},
+		Spec: corev1.PodSpec{
+			NodeName:   "custom-autopilot-node-1",
+			Containers: []corev1.Container{{Name: "c", Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")}}}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning, StartTime: &startTime},
+	}
+
+	// Pod on a custom-named node with nodepool label (standard)
+	standardPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "std-pod", Namespace: "default",
+			Labels: map[string]string{"cloud.google.com/gke-nodepool": "custom-pool"},
+		},
+		Spec: corev1.PodSpec{
+			NodeName:   "custom-standard-node-1",
+			Containers: []corev1.Container{{Name: "c", Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("100m")}}}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning, StartTime: &startTime},
+	}
+
+	pods := []runtime.Object{autopilotPod, standardPod}
+
+	t.Run("all mode includes label-detected pods", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeAll))
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 2 {
+			t.Fatalf("expected 2 pods with label fallback, got %d", len(result))
+		}
+	})
+
+	t.Run("autopilot mode detects via labels", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeAutopilot))
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "ap-pod" {
+			t.Fatalf("expected only ap-pod, got %v", result)
+		}
+		if !result[0].IsAutopilot {
+			t.Error("expected IsAutopilot = true for label-detected autopilot pod")
+		}
+	})
+
+	t.Run("standard mode detects via labels", func(t *testing.T) {
+		client := fake.NewSimpleClientset(pods...)
+		pl, err := NewPodLister(WithClient(client), WithClusterMode(ClusterModeStandard))
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := pl.ListPods(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result) != 1 || result[0].Name != "std-pod" {
+			t.Fatalf("expected only std-pod, got %v", result)
 		}
 	})
 }

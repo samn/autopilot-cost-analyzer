@@ -19,8 +19,8 @@ var (
 
 // sortIndicator returns the header text with a sort direction arrow if this
 // column is the active sort column.
-func sortIndicator(header string, col SortColumn, cfg SortConfig) string {
-	if col != cfg.Column {
+func sortIndicator(header string, col SortColumn, sortable bool, cfg SortConfig) string {
+	if !sortable || col != cfg.Column {
 		return header
 	}
 	if cfg.Asc {
@@ -29,11 +29,27 @@ func sortIndicator(header string, col SortColumn, cfg SortConfig) string {
 	return header + " v"
 }
 
+// costModeShort returns a short display string for the cost mode.
+func costModeShort(mode string) string {
+	switch mode {
+	case "autopilot":
+		return "AP"
+	case "standard":
+		return "STD"
+	default:
+		return mode
+	}
+}
+
 // RenderTable renders the aggregated costs as a formatted table string.
 // When showSubtype is true, a SUBTYPE column is included.
 // When showUtilization is true, CPU%, MEM%, and WASTE columns are included.
+// When showMode is true, a MODE column is included.
 // The sortCfg controls which column header receives a sort indicator arrow.
-func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization bool, sortCfg SortConfig) string {
+func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization, showMode bool, sortCfg SortConfig) string {
+	vis := ColumnVisibility{Subtype: showSubtype, Mode: showMode, Utilization: showUtilization}
+	defs := visibleColumns(vis)
+
 	rows := make([][]string, 0, len(aggs)+1)
 
 	var totalCostPerHour, totalCost, totalWaste float64
@@ -48,6 +64,9 @@ func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization bool, 
 		}
 		if showSubtype {
 			row = append(row, orDefault(a.Key.Subtype, "-"))
+		}
+		if showMode {
+			row = append(row, costModeShort(a.CostMode))
 		}
 		row = append(row,
 			fmt.Sprintf("%d", a.PodCount),
@@ -79,6 +98,9 @@ func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization bool, 
 	if showSubtype {
 		totalRow = append(totalRow, "")
 	}
+	if showMode {
+		totalRow = append(totalRow, "")
+	}
 	totalRow = append(totalRow, "", "", "",
 		fmt.Sprintf("$%.4f", totalCostPerHour),
 		fmt.Sprintf("$%.4f", totalCost),
@@ -91,39 +113,19 @@ func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization bool, 
 	}
 	rows = append(rows, totalRow)
 
-	headers := []string{
-		sortIndicator("TEAM", SortByTeam, sortCfg),
-		sortIndicator("WORKLOAD", SortByWorkload, sortCfg),
-	}
-	if showSubtype {
-		headers = append(headers, sortIndicator("SUBTYPE", SortBySubtype, sortCfg))
-	}
-	headers = append(headers,
-		sortIndicator("PODS", SortByPods, sortCfg),
-		sortIndicator("CPU REQ", SortByCPU, sortCfg),
-		sortIndicator("MEM REQ", SortByMem, sortCfg),
-		sortIndicator("$/HR", SortByCostPerHour, sortCfg),
-		sortIndicator("COST", SortByCost, sortCfg),
-		"SPOT",
-	)
-	if showUtilization {
-		headers = append(headers,
-			sortIndicator("CPU%", SortByCPUUtil, sortCfg),
-			"MEM%",
-			sortIndicator("WASTE", SortByWaste, sortCfg),
-		)
+	// Build headers from column definitions.
+	headers := make([]string, len(defs))
+	for i, d := range defs {
+		headers[i] = sortIndicator(d.header, d.sortCol, d.sortable, sortCfg)
 	}
 
-	// First numeric column index depends on whether SUBTYPE is shown.
-	numericStart := 2
-	if showSubtype {
-		numericStart = 3
+	// Build a set of numeric column indices from definitions.
+	numericCols := make(map[int]bool)
+	for i, d := range defs {
+		if d.numeric {
+			numericCols[i] = true
+		}
 	}
-	// Base numeric columns: PODS, CPU REQ, MEM REQ, $/HR, COST
-	numericEnd := numericStart + 4
-	// SPOT column is at numericEnd+1, then utilization columns follow
-	utilStart := numericEnd + 2 // after SPOT
-	utilEnd := utilStart + 2    // CPU%, MEM%, WASTE
 
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
@@ -134,10 +136,7 @@ func RenderTable(aggs []cost.AggregatedCost, showSubtype, showUtilization bool, 
 			if row == table.HeaderRow {
 				return headerStyle
 			}
-			if col >= numericStart && col <= numericEnd {
-				return numericStyle
-			}
-			if showUtilization && col >= utilStart && col <= utilEnd {
+			if numericCols[col] {
 				return numericStyle
 			}
 			return cellStyle

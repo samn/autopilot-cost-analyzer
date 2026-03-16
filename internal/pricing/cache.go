@@ -2,15 +2,17 @@ package pricing
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 const (
-	defaultCacheDir = "autopilot-cost-analyzer"
-	cacheFileName   = "prices.json"
-	defaultCacheTTL = 24 * time.Hour
+	defaultCacheDir      = "autopilot-cost-analyzer"
+	defaultCacheFileName = "prices.json"
+	defaultCacheTTL      = 24 * time.Hour
 )
 
 // CachedPrices is the on-disk format for cached pricing data.
@@ -19,11 +21,29 @@ type CachedPrices struct {
 	Prices    []Price   `json:"prices"`
 }
 
+// CachedComputePrices is the on-disk format for cached compute pricing data.
+type CachedComputePrices struct {
+	FetchedAt time.Time      `json:"fetched_at"`
+	Prices    []ComputePrice `json:"prices"`
+}
+
+// cachedData is a constraint for types that can be stored in the cache.
+type cachedData interface {
+	CachedPrices | CachedComputePrices
+	fetchedAt() time.Time
+}
+
+func (c CachedPrices) fetchedAt() time.Time        { return c.FetchedAt }
+func (c CachedComputePrices) fetchedAt() time.Time { return c.FetchedAt }
+
 // Cache manages reading and writing pricing data to a local file cache.
+// All public methods are safe for concurrent use.
 type Cache struct {
-	dir string
-	ttl time.Duration
-	now func() time.Time // for testing
+	mu       sync.Mutex
+	dir      string
+	ttl      time.Duration
+	now      func() time.Time // for testing
+	fileName string
 }
 
 // CacheOption configures a Cache.
@@ -44,6 +64,11 @@ func WithNowFunc(fn func() time.Time) CacheOption {
 	return func(c *Cache) { c.now = fn }
 }
 
+// WithCacheFileName overrides the cache file name.
+func WithCacheFileName(name string) CacheOption {
+	return func(c *Cache) { c.fileName = name }
+}
+
 // NewCache creates a new Cache with the given options.
 func NewCache(opts ...CacheOption) (*Cache, error) {
 	cacheDir, err := os.UserCacheDir()
@@ -52,9 +77,10 @@ func NewCache(opts ...CacheOption) (*Cache, error) {
 	}
 
 	c := &Cache{
-		dir: filepath.Join(cacheDir, defaultCacheDir),
-		ttl: defaultCacheTTL,
-		now: time.Now,
+		dir:      filepath.Join(cacheDir, defaultCacheDir),
+		ttl:      defaultCacheTTL,
+		now:      time.Now,
+		fileName: defaultCacheFileName,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -63,11 +89,11 @@ func NewCache(opts ...CacheOption) (*Cache, error) {
 }
 
 func (c *Cache) path() string {
-	return filepath.Join(c.dir, cacheFileName)
+	return filepath.Join(c.dir, c.fileName)
 }
 
-// Load reads cached prices from disk. Returns nil if the cache is missing or expired.
-func (c *Cache) Load() (*CachedPrices, error) {
+// loadCached is the generic implementation for loading cached data from disk.
+func loadCached[T cachedData](c *Cache) (*T, error) {
 	data, err := os.ReadFile(c.path())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -76,27 +102,23 @@ func (c *Cache) Load() (*CachedPrices, error) {
 		return nil, err
 	}
 
-	var cached CachedPrices
+	var cached T
 	if err := json.Unmarshal(data, &cached); err != nil {
-		return nil, nil // treat corrupt cache as cache miss
+		log.Printf("Warning: corrupt pricing cache at %s, treating as cache miss: %v", c.path(), err)
+		return nil, nil
 	}
 
-	if c.now().Sub(cached.FetchedAt) > c.ttl {
+	if c.now().Sub(cached.fetchedAt()) > c.ttl {
 		return nil, nil // expired
 	}
 
 	return &cached, nil
 }
 
-// Save writes prices to the cache file on disk.
-func (c *Cache) Save(prices []Price) error {
+// saveCached is the generic implementation for writing cached data to disk.
+func saveCached[T any](c *Cache, cached T) error {
 	if err := os.MkdirAll(c.dir, 0o755); err != nil {
 		return err
-	}
-
-	cached := CachedPrices{
-		FetchedAt: c.now(),
-		Prices:    prices,
 	}
 
 	data, err := json.MarshalIndent(cached, "", "  ")
@@ -105,4 +127,38 @@ func (c *Cache) Save(prices []Price) error {
 	}
 
 	return os.WriteFile(c.path(), data, 0o644)
+}
+
+// Load reads cached prices from disk. Returns nil if the cache is missing or expired.
+func (c *Cache) Load() (*CachedPrices, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return loadCached[CachedPrices](c)
+}
+
+// Save writes prices to the cache file on disk.
+func (c *Cache) Save(prices []Price) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return saveCached(c, CachedPrices{
+		FetchedAt: c.now(),
+		Prices:    prices,
+	})
+}
+
+// LoadComputePrices reads cached compute prices from disk. Returns nil if the cache is missing or expired.
+func (c *Cache) LoadComputePrices() (*CachedComputePrices, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return loadCached[CachedComputePrices](c)
+}
+
+// SaveComputePrices writes compute prices to the cache file on disk.
+func (c *Cache) SaveComputePrices(prices []ComputePrice) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return saveCached(c, CachedComputePrices{
+		FetchedAt: c.now(),
+		Prices:    prices,
+	})
 }
