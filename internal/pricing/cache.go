@@ -2,8 +2,10 @@ package pricing
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -35,7 +37,9 @@ func (c CachedPrices) fetchedAt() time.Time        { return c.FetchedAt }
 func (c CachedComputePrices) fetchedAt() time.Time { return c.FetchedAt }
 
 // Cache manages reading and writing pricing data to a local file cache.
+// All public methods are safe for concurrent use.
 type Cache struct {
+	mu       sync.Mutex
 	dir      string
 	ttl      time.Duration
 	now      func() time.Time // for testing
@@ -100,7 +104,8 @@ func loadCached[T cachedData](c *Cache) (*T, error) {
 
 	var cached T
 	if err := json.Unmarshal(data, &cached); err != nil {
-		return nil, nil // treat corrupt cache as cache miss
+		log.Printf("Warning: corrupt pricing cache at %s, treating as cache miss: %v", c.path(), err)
+		return nil, nil
 	}
 
 	if c.now().Sub(cached.fetchedAt()) > c.ttl {
@@ -126,11 +131,15 @@ func saveCached[T any](c *Cache, cached T) error {
 
 // Load reads cached prices from disk. Returns nil if the cache is missing or expired.
 func (c *Cache) Load() (*CachedPrices, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return loadCached[CachedPrices](c)
 }
 
 // Save writes prices to the cache file on disk.
 func (c *Cache) Save(prices []Price) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return saveCached(c, CachedPrices{
 		FetchedAt: c.now(),
 		Prices:    prices,
@@ -139,11 +148,15 @@ func (c *Cache) Save(prices []Price) error {
 
 // LoadComputePrices reads cached compute prices from disk. Returns nil if the cache is missing or expired.
 func (c *Cache) LoadComputePrices() (*CachedComputePrices, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return loadCached[CachedComputePrices](c)
 }
 
 // SaveComputePrices writes compute prices to the cache file on disk.
 func (c *Cache) SaveComputePrices(prices []ComputePrice) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return saveCached(c, CachedComputePrices{
 		FetchedAt: c.now(),
 		Prices:    prices,

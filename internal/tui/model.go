@@ -205,25 +205,25 @@ func (m Model) fetchCosts() tea.Msg {
 
 // helpText returns the footer help line showing sort key mappings.
 func (m Model) helpText() string {
-	cols := []string{"Team", "Workload"}
-	if m.showSubtype {
-		cols = append(cols, "Subtype")
-	}
-	if m.showMode {
-		cols = append(cols, "Mode")
-	}
-	cols = append(cols, "Pods", "CPU", "Mem", "$/hr", "Cost")
-	if m.showUtilization {
-		cols = append(cols, "CPU%", "Waste")
-	}
+	vis := ColumnVisibility{Subtype: m.showSubtype, Mode: m.showMode, Utilization: m.showUtilization}
+	defs := visibleColumns(vis)
 
 	help := "Sort:"
-	for i, c := range cols {
-		key := i + 1
+	keyIdx := 0
+	for _, d := range defs {
+		if !d.sortable {
+			continue
+		}
+		name := d.helpName
+		if name == "" {
+			name = d.header
+		}
+		key := keyIdx + 1
 		if key == 10 {
 			key = 0
 		}
-		help += fmt.Sprintf(" %d=%s", key, c)
+		help += fmt.Sprintf(" %d=%s", key, name)
+		keyIdx++
 	}
 	help += " · q=Quit"
 	return help

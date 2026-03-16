@@ -91,12 +91,14 @@ func (sc *StandardCalculator) CalculateAll(pods []kube.PodInfo) []PodCost {
 		}
 
 		for _, i := range podIndices {
-			pod := pods[i]
-			// Propagate spot status from the node to the pod so that
+			// Value copy — pods[i] is a struct, so this creates a local
+			// copy that we can safely mutate without affecting the caller's
+			// slice. We propagate spot status from the node so that
 			// downstream aggregation correctly groups standard pods by
 			// their actual scheduling tier instead of relying on pod-level
 			// NodeSelector labels (which are typically absent for standard
 			// GKE workloads).
+			pod := pods[i]
 			pod.IsSpot = node.IsSpot
 			durationHours := sc.durationHours(pod)
 

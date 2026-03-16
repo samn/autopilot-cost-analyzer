@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"log"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,6 +81,10 @@ func (nl *NodeLister) ListNodes(ctx context.Context) ([]NodeInfo, error) {
 
 		isSpot := node.Labels["cloud.google.com/gke-spot"] == "true"
 
+		if vcpu == 0 || memGB == 0 {
+			log.Printf("Warning: node %q has zero allocatable resources (vCPU=%.2f, memGB=%.2f); pods on this node will show $0 cost", node.Name, vcpu, memGB)
+		}
+
 		nodes = append(nodes, NodeInfo{
 			Name:          node.Name,
 			MachineType:   machineType,
@@ -100,10 +105,6 @@ func parseMachineFamily(machineType string) string {
 	}
 
 	parts := strings.SplitN(machineType, "-", 2)
-	if len(parts) == 0 {
-		return ""
-	}
-
 	family := strings.ToLower(parts[0])
 
 	// Bare "custom-N-M" machine types are billed at N1 rates.
