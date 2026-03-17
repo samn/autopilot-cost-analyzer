@@ -38,12 +38,23 @@ interactive table via BubbleTea. Supports interactive column sorting with number
 keys.
 
 Flags: `--interval`, `--region` (required), `--project` (global), `--namespace`,
-`--team-label`, `--workload-label`, `--subtype-label`, `--prometheus-url` (optional).
+`--team-label`, `--workload-label`, `--subtype-label`, `--prometheus-url` (optional),
+`--trend-threshold` (Z-score threshold for aberration detection, default 3.0, 0 to disable).
 
 Utilization columns (CPU%, MEM%, WASTE) are automatically displayed when a
 Prometheus source is available — either GCP Managed Prometheus (default when
 project is detected) or a custom `--prometheus-url`. Utilization data is
 fetched on each refresh cycle.
+
+**Cost aberration detection**: The watch command tracks per-workload cost trends
+using an Exponential Weighted Moving Average (EWMA). When a workload's
+CostPerHour deviates significantly from its recent baseline (beyond the
+configured Z-score threshold), it is flagged as an aberration. The algorithm
+tolerates normal cyclical patterns (autoscaling, replica changes) by adapting
+its baseline over time. A running event log (`e` to toggle, `[`/`]` to scroll)
+shows timestamped cost changes with relative time and magnitude. Workload
+appearance and disappearance are also logged. Aberrant rows display ▲/▼
+indicators next to the $/HR value in the cost table.
 
 ### `record`
 Daemon mode: periodically snapshot pod costs and write aggregated records to

@@ -11,7 +11,11 @@ import (
 	"github.com/samn/autopilot-cost-analyzer/internal/cost"
 	"github.com/samn/autopilot-cost-analyzer/internal/kube"
 	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/autopilot-cost-analyzer/internal/trend"
 )
+
+// eventLogMaxLines is the number of event lines shown in the event log panel.
+const eventLogMaxLines = 6
 
 // PodLister abstracts Kubernetes pod listing for testability.
 type PodLister interface {
@@ -62,6 +66,10 @@ type Model struct {
 	utilPodCount int    // number of pods with utilization data
 	promProject  string // GCP project queried for Prometheus metrics
 
+	// Trend tracking for cost aberration detection.
+	tracker    *trend.Tracker // nil if disabled
+	showEvents bool           // whether to show the event log panel
+
 	lister        PodLister
 	autopilotCalc *cost.Calculator
 	standardCalc  *cost.StandardCalculator
@@ -73,8 +81,13 @@ type Model struct {
 	promClient    *prometheus.Client
 }
 
-// NewModel creates a new TUI model.
-func NewModel(ctx context.Context, cancel context.CancelFunc, lister PodLister, autopilotCalc *cost.Calculator, standardCalc *cost.StandardCalculator, nodeLister NodeLister, lc cost.LabelConfig, interval time.Duration, promClient *prometheus.Client, promProject string, showMode bool) Model {
+// NewModel creates a new TUI model. If trendCfg is non-nil, cost aberration
+// detection is enabled with the given configuration.
+func NewModel(ctx context.Context, cancel context.CancelFunc, lister PodLister, autopilotCalc *cost.Calculator, standardCalc *cost.StandardCalculator, nodeLister NodeLister, lc cost.LabelConfig, interval time.Duration, promClient *prometheus.Client, promProject string, showMode bool, trendCfg *trend.Config) Model {
+	var tracker *trend.Tracker
+	if trendCfg != nil {
+		tracker = trend.NewTracker(*trendCfg)
+	}
 	return Model{
 		lister:          lister,
 		autopilotCalc:   autopilotCalc,
@@ -93,6 +106,8 @@ func NewModel(ctx context.Context, cancel context.CancelFunc, lister PodLister, 
 		startedAt:       time.Now(),
 		grouped:         true,
 		expandedTeams:   make(map[string]bool),
+		tracker:         tracker,
+		showEvents:      tracker != nil,
 	}
 }
 
@@ -145,6 +160,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.rebuildDisplay()
 			m.clampCursor()
 			return m, nil
+		case "e":
+			if m.tracker != nil {
+				m.showEvents = !m.showEvents
+			}
+			return m, nil
 		}
 
 	case costDataMsg:
@@ -154,6 +174,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.promErr = msg.promErr
 		m.utilPodCount = msg.utilPodCount
 		m.lastUpdate = time.Now()
+		if m.tracker != nil {
+			m.tracker.Update(m.aggs, m.lastUpdate)
+		}
 		m.rebuildDisplay()
 		return m, m.scheduleTick
 
@@ -266,9 +289,21 @@ func (m Model) View() string {
 		}
 	}
 
-	help := m.helpText()
+	// Collect active aberrations for table highlighting.
+	var aberrations map[cost.GroupKey]trend.Event
+	if m.tracker != nil {
+		// Show aberrations from the last 5 minutes.
+		aberrations = m.tracker.ActiveAberrations(m.lastUpdate.Add(-5 * time.Minute))
+	}
 
-	return header + "\n\n" + RenderTable(m.displayRows, m.showSubtype, m.showUtilization, m.showMode, m.sortCfg, m.cursor) + "\n\n" + help + "\n"
+	help := m.helpText()
+	result := header + "\n\n" + RenderTable(m.displayRows, m.showSubtype, m.showUtilization, m.showMode, m.sortCfg, m.cursor, aberrations) + "\n\n" + help + "\n"
+
+	if m.showEvents && m.tracker != nil {
+		result += "\n" + RenderEventLog(m.tracker.Events(), time.Now(), eventLogMaxLines)
+	}
+
+	return result
 }
 
 // fetchCosts fetches pod data and calculates costs.
@@ -336,6 +371,9 @@ func (m Model) helpText() string {
 		help += " g=Flat"
 	} else {
 		help += " g=Grouped"
+	}
+	if m.tracker != nil {
+		help += " e=Events"
 	}
 	help += " · q=Quit"
 	return help

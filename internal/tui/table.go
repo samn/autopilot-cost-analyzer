@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 
 	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/autopilot-cost-analyzer/internal/trend"
 )
 
 var (
@@ -111,7 +112,8 @@ func costModeShort(mode string) string {
 // team rollup and drill-down support.
 // displayRows are the pre-built rows (team summaries + expanded workload details).
 // cursor is the index of the currently selected display row (-1 for no selection).
-func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMode bool, sortCfg SortConfig, cursor int) string {
+// aberrations maps GroupKeys to their active aberration events (may be nil).
+func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMode bool, sortCfg SortConfig, cursor int, aberrations map[cost.GroupKey]trend.Event) string {
 	vis := ColumnVisibility{Subtype: showSubtype, Mode: showMode, Utilization: showUtilization}
 	defs := visibleColumns(vis)
 
@@ -121,7 +123,17 @@ func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMod
 	var totalCPU, totalMem float64
 	var totalCostPerHour, totalCost, totalWaste float64
 
-	for _, dr := range displayRows {
+	// Track which display rows have aberrations for styling.
+	aberrationRows := make(map[int]trend.Event)
+
+	for idx, dr := range displayRows {
+		// Check if this row's workload has an active aberration.
+		if aberrations != nil {
+			if e, ok := aberrations[dr.Agg.Key]; ok {
+				aberrationRows[idx] = e
+			}
+		}
+
 		var row []string
 		switch dr.Kind {
 		case rowTeamSummary:
@@ -140,11 +152,12 @@ func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMod
 				row = append(row, "")
 			}
 			a := dr.Agg
+			indicator := aberrationIndicator(aberrationRows, idx)
 			row = append(row,
 				fmt.Sprintf("%d", a.PodCount),
 				fmt.Sprintf("%.2f", a.TotalCPUVCPU),
 				fmt.Sprintf("%.1f GB", a.TotalMemGB),
-				fmt.Sprintf("$%.4f", a.CostPerHour),
+				fmt.Sprintf("%s$%.4f", indicator, a.CostPerHour),
 				fmt.Sprintf("$%.4f", a.TotalCost),
 				"", // spot: mixed at team level
 			)
@@ -168,11 +181,13 @@ func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMod
 			totalWaste += a.WastedCostPerHour
 
 		case rowWorkloadDetail:
-			row = buildWorkloadRow(dr.Agg, "", showSubtype, showMode, showUtilization)
+			ind := aberrationIndicator(aberrationRows, idx)
+			row = buildWorkloadRow(dr.Agg, "", showSubtype, showMode, showUtilization, ind)
 
 		case rowFlat:
 			a := dr.Agg
-			row = buildWorkloadRow(a, orDefault(a.Key.Team, "-"), showSubtype, showMode, showUtilization)
+			ind := aberrationIndicator(aberrationRows, idx)
+			row = buildWorkloadRow(a, orDefault(a.Key.Team, "-"), showSubtype, showMode, showUtilization, ind)
 			// Accumulate totals from flat rows.
 			totalPods += a.PodCount
 			totalCPU += a.TotalCPUVCPU
@@ -268,7 +283,8 @@ func RenderTable(displayRows []DisplayRow, showSubtype, showUtilization, showMod
 
 // buildWorkloadRow creates a table row for a single workload aggregate.
 // teamCol is the value for the TEAM column (empty string for nested workload details).
-func buildWorkloadRow(a cost.AggregatedCost, teamCol string, showSubtype, showMode, showUtilization bool) []string {
+// indicator is prepended to the $/HR cell (e.g., "▲ " or "▼ " for aberrations).
+func buildWorkloadRow(a cost.AggregatedCost, teamCol string, showSubtype, showMode, showUtilization bool, indicator string) []string {
 	spot := ""
 	if a.Key.IsSpot {
 		spot = "yes"
@@ -287,7 +303,7 @@ func buildWorkloadRow(a cost.AggregatedCost, teamCol string, showSubtype, showMo
 		fmt.Sprintf("%d", a.PodCount),
 		fmt.Sprintf("%.2f", a.TotalCPUVCPU),
 		fmt.Sprintf("%.1f GB", a.TotalMemGB),
-		fmt.Sprintf("$%.4f", a.CostPerHour),
+		fmt.Sprintf("%s$%.4f", indicator, a.CostPerHour),
 		fmt.Sprintf("$%.4f", a.TotalCost),
 		spot,
 	)
@@ -303,6 +319,18 @@ func buildWorkloadRow(a cost.AggregatedCost, teamCol string, showSubtype, showMo
 		}
 	}
 	return row
+}
+
+// aberrationIndicator returns "▲ " for cost increases, "▼ " for decreases,
+// or "" if the row has no active aberration.
+func aberrationIndicator(aberrations map[int]trend.Event, rowIdx int) string {
+	if e, ok := aberrations[rowIdx]; ok {
+		if e.PctChange >= 0 {
+			return "▲ "
+		}
+		return "▼ "
+	}
+	return ""
 }
 
 func orDefault(s, def string) string {

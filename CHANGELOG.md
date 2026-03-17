@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Cost aberration detection in `watch` TUI: tracks per-workload cost trends using EWMA and highlights sudden deviations while tolerating normal cyclical patterns (autoscaling)
+- Running event log in `watch` TUI showing cost changes with timestamps and relative time (`e` to toggle, `[`/`]` to scroll)
+- Aberration indicators (▲/▼) on $/HR values in the cost table for workloads with active cost deviations
+- `--trend-threshold` flag for `watch` command to configure aberration sensitivity (default 3.0 z-scores, 0 to disable)
 - Elapsed watch duration displayed in TUI header to contextualize accumulated costs
 - Team rollup in `watch` TUI: costs are grouped by team with expand/collapse drill-down into individual workloads (Enter/Space to toggle, `a` to expand/collapse all, ↑↓/j/k to navigate)
 - Flat/grouped view toggle (`g` key): grouped mode sorts at team level with nested workloads; flat mode sorts all workloads individually regardless of team
