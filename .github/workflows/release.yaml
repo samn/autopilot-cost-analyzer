@@ -37,8 +37,8 @@ jobs:
           key: go-${{ runner.os }}-${{ hashFiles('go.sum') }}
           restore-keys: go-${{ runner.os }}-
 
-      - name: Build linux-amd64 binary
-        run: make build GOOS=linux GOARCH=amd64 VERSION=${{ github.ref_name }}
+      - name: Build and compress linux-amd64 binary
+        run: make compress GOOS=linux GOARCH=amd64 VERSION=${{ github.ref_name }}
 
       - name: Extract changelog for this release
         id: changelog

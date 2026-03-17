@@ -220,7 +220,9 @@ go build ./...
 
 Releases are automated via GitHub Actions. Pushing a `v`-prefixed tag triggers
 the [release workflow](.github/workflows/release.yaml), which runs tests, builds
-a static `linux/amd64` binary, and creates a GitHub Release with changelog notes.
+a static `linux/amd64` binary, compresses it with gzip, and creates a GitHub
+Release with changelog notes. Release artifacts are named
+`gke-cost-analyzer-<os>-<arch>.gz`.
 
 ### Steps
 
