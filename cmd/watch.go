@@ -11,13 +11,18 @@ import (
 
 	"github.com/samn/autopilot-cost-analyzer/internal/cost"
 	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
+	"github.com/samn/autopilot-cost-analyzer/internal/trend"
 	"github.com/samn/autopilot-cost-analyzer/internal/tui"
 )
 
-var watchInterval time.Duration
+var (
+	watchInterval  time.Duration
+	trendThreshold float64
+)
 
 func init() {
 	watchCmd.Flags().DurationVar(&watchInterval, "interval", 10*time.Second, "Refresh interval")
+	watchCmd.Flags().Float64Var(&trendThreshold, "trend-threshold", 3.0, "Z-score threshold for cost aberration detection (0 to disable)")
 	rootCmd.AddCommand(watchCmd)
 }
 
@@ -82,7 +87,14 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 	lc := labelConfig()
 	showMode := mode == "all"
 
-	model := tui.NewModel(ctx, cancel, lister, autopilotCalc, standardCalc, nodeLister, lc, watchInterval, promClient, project, showMode)
+	var trendCfg *trend.Config
+	if trendThreshold > 0 {
+		cfg := trend.DefaultConfig()
+		cfg.Threshold = trendThreshold
+		trendCfg = &cfg
+	}
+
+	model := tui.NewModel(ctx, cancel, lister, autopilotCalc, standardCalc, nodeLister, lc, watchInterval, promClient, project, showMode, trendCfg)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("running TUI: %w", err)
