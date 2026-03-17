@@ -120,7 +120,7 @@ Build the foundational packages that everything else depends on.
 
 - Run as a daemon, periodically (default 5 min, configurable via `--interval`) snapshot pod costs
 - Write aggregated cost records to BigQuery
-- Flags: `--project`, `--dataset` (default `autopilot_costs`), `--table` (default `cost_snapshots`), `--interval`
+- Flags: `--project`, `--dataset` (default `gke_costs`), `--table` (default `cost_snapshots`), `--interval`
 - On each tick:
   1. List all pods, compute costs for the snapshot window
   2. Write one row per (team, workload, subtype) combination
@@ -217,7 +217,7 @@ The kube and BigQuery sides converge at the `record` command.
 ```sql
 -- Total cost by team for today
 SELECT team, SUM(total_cost) as cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE DATE(timestamp) = CURRENT_DATE()
 GROUP BY team;
 
@@ -226,7 +226,7 @@ SELECT
   TIMESTAMP_TRUNC(timestamp, HOUR) as hour,
   workload,
   SUM(total_cost) as cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE DATE(timestamp) = CURRENT_DATE()
   AND team = 'my-team'
 GROUP BY hour, workload
@@ -238,7 +238,7 @@ SELECT
   team,
   SUM(total_cost) as cost,
   SUM(CASE WHEN is_spot THEN total_cost ELSE 0 END) as spot_cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
 GROUP BY day, team
 ORDER BY day;

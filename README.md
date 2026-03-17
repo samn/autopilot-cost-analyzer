@@ -138,7 +138,7 @@ Options:
 - `--region` (required): GCP region for pricing lookup
 - `--project` (required): GCP project ID for BigQuery
 - `--cluster-name` (required): GKE cluster name
-- `--dataset`: BigQuery dataset name (default: "autopilot_costs")
+- `--dataset`: BigQuery dataset name (default: "gke_costs")
 - `--table`: BigQuery table name (default: "cost_snapshots")
 - `--interval`: Snapshot interval (default: 5m)
 
@@ -147,7 +147,7 @@ Options:
 ```sql
 -- Total cost by team for today
 SELECT team, SUM(total_cost) as cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE DATE(timestamp) = CURRENT_DATE()
 GROUP BY team;
 
@@ -156,7 +156,7 @@ SELECT
   TIMESTAMP_TRUNC(timestamp, HOUR) as hour,
   workload,
   SUM(total_cost) as cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE DATE(timestamp) = CURRENT_DATE()
   AND team = 'my-team'
 GROUP BY hour, workload
@@ -168,7 +168,7 @@ SELECT
   team,
   SUM(total_cost) as cost,
   SUM(CASE WHEN is_spot THEN total_cost ELSE 0 END) as spot_cost
-FROM `project.autopilot_costs.cost_snapshots`
+FROM `project.gke_costs.cost_snapshots`
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
 GROUP BY day, team
 ORDER BY day;

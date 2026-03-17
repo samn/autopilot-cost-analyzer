@@ -14,7 +14,7 @@ var (
 )
 
 func init() {
-	setupCmd.Flags().StringVar(&setupDataset, "dataset", "autopilot_costs", "BigQuery dataset name")
+	setupCmd.Flags().StringVar(&setupDataset, "dataset", "gke_costs", "BigQuery dataset name")
 	setupCmd.Flags().StringVar(&setupTable, "table", "cost_snapshots", "BigQuery table name")
 	setupCmd.Flags().StringVar(&setupLocation, "location", "US", "BigQuery dataset location")
 	rootCmd.AddCommand(setupCmd)

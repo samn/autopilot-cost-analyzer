@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Go module path changed from `github.com/samn/autopilot-cost-analyzer` to `github.com/samn/gke-cost-analyzer`
 - Binary name changed from `autopilot-cost-analyzer` to `gke-cost-analyzer`
 - Cache directory changed from `~/.cache/autopilot-cost-analyzer/` to `~/.cache/gke-cost-analyzer/`
+- Default BigQuery dataset name changed from `autopilot_costs` to `gke_costs`
 
 ### Added
 - Cost aberration detection in `watch` TUI: tracks per-workload cost trends using EWMA and highlights sudden deviations while tolerating normal cyclical patterns (autoscaling)
