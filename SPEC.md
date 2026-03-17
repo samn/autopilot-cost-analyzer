@@ -1,4 +1,4 @@
-# autopilot-cost-analyzer
+# gke-cost-analyzer
 
 ## Problem
 
@@ -8,7 +8,7 @@ While GKE (Google Kubernetes Engine) supports exporting billing & consumption da
 While cost attribution is quite complex for standard GKE workloads, we can take a simpler approach with Autopilot (on standard or Autopilot clusters).
 Autopilot Pods are billed for their resource requests * running duration * resource cost.
 
-## autopilot-cost-analyzer CLI
+## gke-cost-analyzer CLI
 
 A tool (written in golang) to monitor usage of GKE workloads (Autopilot and standard) and either display a table of cost over time (`watch`) or write to bigquery.
 There should be a command to create the necessary BigQuery dataset & tables. Prices should be fetched from the prices API and cached in `~/.cache`.
@@ -131,7 +131,7 @@ first tiered rate with a non-zero price is used. The price is constructed from
 `FromPrices()` converts them to **per vCPU-hour** by multiplying by 1000.
 Memory prices are **per GB-hour** and require no conversion.
 
-**Caching**: Prices are cached to `~/.cache/autopilot-cost-analyzer/prices.json`
+**Caching**: Prices are cached to `~/.cache/gke-cost-analyzer/prices.json`
 with a default TTL of 24 hours. Corrupt cache files are treated as cache misses
 (not errors). Cache save failures are logged as warnings but don't block
 operation.
@@ -227,7 +227,7 @@ Unlike Autopilot (per-mCPU), Compute Engine CPU prices are already per-vCPU-hour
 — no ×1000 conversion is needed.
 
 **Caching**: Prices are cached to
-`~/.cache/autopilot-cost-analyzer/compute_prices.json` with the same 24-hour
+`~/.cache/gke-cost-analyzer/compute_prices.json` with the same 24-hour
 TTL as Autopilot prices.
 
 ### 3b. Standard Cost Calculation (`internal/cost`)

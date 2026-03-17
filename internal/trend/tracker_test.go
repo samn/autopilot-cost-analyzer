@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
 )
 
 func makeAgg(team, workload string, costPerHour float64) cost.AggregatedCost {

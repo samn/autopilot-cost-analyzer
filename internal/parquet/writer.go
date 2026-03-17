@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/parquet-go/parquet-go"
-	"github.com/samn/autopilot-cost-analyzer/internal/bigquery"
+	"github.com/samn/gke-cost-analyzer/internal/bigquery"
 )
 
 // Row is the Parquet representation of a cost snapshot, matching the BigQuery

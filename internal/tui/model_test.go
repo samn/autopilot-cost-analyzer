@@ -12,10 +12,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
 )
 
 type mockPodLister struct {

@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
 )
 
 func TestDefaultSort(t *testing.T) {

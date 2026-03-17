@@ -3,7 +3,7 @@ package sentry_test
 import (
 	"testing"
 
-	appSentry "github.com/samn/autopilot-cost-analyzer/internal/sentry"
+	appSentry "github.com/samn/gke-cost-analyzer/internal/sentry"
 )
 
 func TestInit_NoDSN(t *testing.T) {

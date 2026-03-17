@@ -4,8 +4,8 @@ package cost
 import (
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
 )
 
 // PodCost represents the calculated cost for a single pod.

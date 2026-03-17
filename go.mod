@@ -1,4 +1,4 @@
-module github.com/samn/autopilot-cost-analyzer
+module github.com/samn/gke-cost-analyzer
 
 go 1.26.1
 

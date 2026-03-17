@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultCacheDir      = "autopilot-cost-analyzer"
+	defaultCacheDir      = "gke-cost-analyzer"
 	defaultCacheFileName = "prices.json"
 	defaultCacheTTL      = 24 * time.Hour
 )

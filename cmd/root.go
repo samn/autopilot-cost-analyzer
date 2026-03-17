@@ -4,7 +4,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/envdefaults"
+	"github.com/samn/gke-cost-analyzer/internal/envdefaults"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ var newDetector = func() *envdefaults.Detector {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "autopilot-cost-analyzer",
+	Use:   "gke-cost-analyzer",
 	Short: "Analyze costs of GKE Autopilot workloads",
 	Long:  "A CLI tool to monitor and analyze costs of GKE Autopilot workloads, with support for BigQuery export.",
 	PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {

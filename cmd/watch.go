@@ -9,10 +9,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
-	"github.com/samn/autopilot-cost-analyzer/internal/trend"
-	"github.com/samn/autopilot-cost-analyzer/internal/tui"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/trend"
+	"github.com/samn/gke-cost-analyzer/internal/tui"
 )
 
 var (

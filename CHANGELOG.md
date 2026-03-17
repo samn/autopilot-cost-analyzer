@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Renamed project from `autopilot-cost-analyzer` to `gke-cost-analyzer` to reflect support for both Autopilot and Standard GKE workloads
+- Go module path changed from `github.com/samn/autopilot-cost-analyzer` to `github.com/samn/gke-cost-analyzer`
+- Binary name changed from `autopilot-cost-analyzer` to `gke-cost-analyzer`
+- Cache directory changed from `~/.cache/autopilot-cost-analyzer/` to `~/.cache/gke-cost-analyzer/`
+
 ### Added
 - Cost aberration detection in `watch` TUI: tracks per-workload cost trends using EWMA and highlights sudden deviations while tolerating normal cyclical patterns (autoscaling)
 - Running event log in `watch` TUI showing cost changes with timestamps and relative time (`e` to toggle, `[`/`]` to scroll)
@@ -52,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Sentry error reporting: errors and panics are automatically sent to Sentry when the `SENTRY_DSN` environment variable is set (no tracing, error reporting only)
 - `unmatched-pods` command to list running pods missing the configured team or workload labels, grouped by base name (with Kubernetes random suffixes stripped) and namespace
-- Dockerfile for running autopilot-cost-analyzer from a GitHub Release binary (`distroless/static` runtime, `nonroot` user, `VERSION` build arg defaults to latest release)
+- Dockerfile for running gke-cost-analyzer from a GitHub Release binary (`distroless/static` runtime, `nonroot` user, `VERSION` build arg defaults to latest release)
 - README: Permissions section documenting required Kubernetes RBAC and GCP IAM roles for each command
 
 ## [0.1.0] - 2026-02-27
@@ -88,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `record` command: periodically write cost snapshots to BigQuery
 - `setup` command: create BigQuery dataset and table for cost recording
 - Cloud Billing Catalog API client for fetching Autopilot pod pricing (CPU and Memory)
-- Local file-based price cache with configurable TTL (~/.cache/autopilot-cost-analyzer/)
+- Local file-based price cache with configurable TTL (~/.cache/gke-cost-analyzer/)
 - Kubernetes pod listing with CPU/memory request extraction
 - Automatic SPOT pod detection via node selector labels
 - Cost calculation: resource requests x duration x unit price

@@ -1,12 +1,12 @@
-// Package main is the entry point for the autopilot-cost-analyzer CLI.
+// Package main is the entry point for the gke-cost-analyzer CLI.
 package main
 
 import (
 	"fmt"
 	"os"
 
-	"github.com/samn/autopilot-cost-analyzer/cmd"
-	appSentry "github.com/samn/autopilot-cost-analyzer/internal/sentry"
+	"github.com/samn/gke-cost-analyzer/cmd"
+	appSentry "github.com/samn/gke-cost-analyzer/internal/sentry"
 )
 
 func main() {

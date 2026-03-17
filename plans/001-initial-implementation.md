@@ -2,7 +2,7 @@
 
 ## Summary
 
-Build the autopilot-cost-analyzer CLI that monitors GKE Autopilot pod costs
+Build the gke-cost-analyzer CLI that monitors GKE Autopilot pod costs
 (CPU + Memory) and can display them in a terminal table (`watch`) or write
 periodic snapshots to BigQuery (`record`). Prices are fetched from the Cloud
 Billing Catalog API and cached locally.
@@ -23,7 +23,7 @@ Billing Catalog API and cached locally.
 ## Package Structure
 
 ```
-autopilot-cost-analyzer/
+gke-cost-analyzer/
 ├── main.go
 ├── cmd/
 │   ├── root.go          # root command, global flags
@@ -36,7 +36,7 @@ autopilot-cost-analyzer/
 │   │   └── pods_test.go
 │   ├── pricing/
 │   │   ├── catalog.go   # Cloud Billing Catalog API client
-│   │   ├── cache.go     # Price caching in ~/.cache/autopilot-cost-analyzer/
+│   │   ├── cache.go     # Price caching in ~/.cache/gke-cost-analyzer/
 │   │   ├── types.go     # Price types (region, tier, resource → price)
 │   │   └── *_test.go
 │   ├── cost/
@@ -59,7 +59,7 @@ Build the foundational packages that everything else depends on.
 #### 1a. Pricing types & cache (`internal/pricing/`)
 
 - Define `Price` struct: region, resource type (cpu/memory), tier (on-demand/spot), unit price (per hour)
-- Implement file-based cache in `~/.cache/autopilot-cost-analyzer/prices.json`
+- Implement file-based cache in `~/.cache/gke-cost-analyzer/prices.json`
 - Cache includes TTL (e.g. 24 hours) so prices aren't re-fetched every run
 - **Tests**: cache read/write/expiry with temp directories
 

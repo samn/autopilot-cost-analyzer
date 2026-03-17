@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/trend"
+	"github.com/samn/gke-cost-analyzer/internal/trend"
 )
 
 var (

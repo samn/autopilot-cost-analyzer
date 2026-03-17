@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/bigquery"
+	"github.com/samn/gke-cost-analyzer/internal/bigquery"
 )
 
 func testSnapshot(ts time.Time, team, workload string, podCount int) bigquery.CostSnapshot {

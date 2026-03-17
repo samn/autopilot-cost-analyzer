@@ -17,7 +17,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, _ []string) {
-		fmt.Fprintf(cmd.OutOrStdout(), "autopilot-cost-analyzer %s (commit: %s, built: %s)\n", version, commit, date)
+		fmt.Fprintf(cmd.OutOrStdout(), "gke-cost-analyzer %s (commit: %s, built: %s)\n", version, commit, date)
 	},
 }
 

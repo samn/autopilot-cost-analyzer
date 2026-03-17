@@ -8,12 +8,12 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/bigquery"
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	pqwriter "github.com/samn/autopilot-cost-analyzer/internal/parquet"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/bigquery"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	pqwriter "github.com/samn/gke-cost-analyzer/internal/parquet"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
 	"github.com/spf13/cobra"
 )
 

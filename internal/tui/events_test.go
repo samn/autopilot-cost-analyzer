@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/trend"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/trend"
 )
 
 func makeEvent(kind trend.EventKind, team, workload string, pctChange float64, ago time.Duration) trend.Event {

@@ -3,7 +3,7 @@ package tui
 import (
 	"sort"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
 )
 
 // TeamGroup represents a team with its aggregated workloads and summary.
