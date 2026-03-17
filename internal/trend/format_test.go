@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
 )
 
 func TestFormatTimeAgo(t *testing.T) {

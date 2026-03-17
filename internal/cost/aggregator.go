@@ -1,7 +1,7 @@
 package cost
 
 import (
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
 )
 
 // LabelConfig specifies which pod labels to use for grouping.

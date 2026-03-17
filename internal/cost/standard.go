@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
 )
 
 // StandardCalculator computes costs for standard GKE pods via per-node

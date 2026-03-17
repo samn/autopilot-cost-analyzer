@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
 )
 
 // helper to build display rows from aggs in collapsed mode (no teams expanded).

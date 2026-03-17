@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
 	"github.com/spf13/cobra"
 )
 

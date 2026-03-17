@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/bigquery"
+	"github.com/samn/gke-cost-analyzer/internal/bigquery"
 	"github.com/spf13/cobra"
 )
 
@@ -55,6 +55,6 @@ func runSetup(cmd *cobra.Command, _ []string) error {
 	fmt.Println("Table ready.")
 
 	fmt.Println("\nSetup complete! You can now run:")
-	fmt.Printf("  autopilot-cost-analyzer record --project %s --region <REGION> --cluster-name <CLUSTER>\n", project)
+	fmt.Printf("  gke-cost-analyzer record --project %s --region <REGION> --cluster-name <CLUSTER>\n", project)
 	return nil
 }

@@ -26,7 +26,7 @@ func TestVersionCommand(t *testing.T) {
 	}
 
 	got := buf.String()
-	want := "autopilot-cost-analyzer v1.2.3 (commit: abc1234, built: 2026-01-15T00:00:00Z)\n"
+	want := "gke-cost-analyzer v1.2.3 (commit: abc1234, built: 2026-01-15T00:00:00Z)\n"
 	if got != want {
 		t.Errorf("version output = %q, want %q", got, want)
 	}

@@ -31,7 +31,7 @@ go.work.sum
 # .idea/
 # .vscode/
 
-autopilot-cost-analyzer
+gke-cost-analyzer
 dist/
 
 .claude/settings.local.json

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/envdefaults"
+	"github.com/samn/gke-cost-analyzer/internal/envdefaults"
 )
 
 func TestApplyDefaultsFillsMissingRegion(t *testing.T) {

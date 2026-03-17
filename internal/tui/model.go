@@ -8,10 +8,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
-	"github.com/samn/autopilot-cost-analyzer/internal/trend"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/trend"
 )
 
 // eventLogMaxLines is the number of event lines shown in the event log panel.

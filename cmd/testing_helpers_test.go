@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
 )
 
 // mockPodLister implements the podLister interface for testing.

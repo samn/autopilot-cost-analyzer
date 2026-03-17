@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
 )
 
 func TestStripPodSuffix(t *testing.T) {

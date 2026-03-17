@@ -1,4 +1,4 @@
-# autopilot-cost-analyzer
+# gke-cost-analyzer
 
 A CLI tool to monitor and analyze costs of GKE workloads (Autopilot and standard), with support for real-time display and BigQuery export.
 
@@ -23,7 +23,7 @@ A CLI tool to monitor and analyze costs of GKE workloads (Autopilot and standard
 ### Build
 
 ```bash
-go build -o autopilot-cost-analyzer .
+go build -o gke-cost-analyzer .
 ```
 
 ### Docker
@@ -32,18 +32,18 @@ Build an image from a GitHub Release binary:
 
 ```bash
 # Uses the latest release by default
-docker build -t autopilot-cost-analyzer .
+docker build -t gke-cost-analyzer .
 
 # Pin to a specific version
-docker build --build-arg VERSION=v0.1.0 -t autopilot-cost-analyzer:0.1.0 .
+docker build --build-arg VERSION=v0.1.0 -t gke-cost-analyzer:0.1.0 .
 ```
 
 Run with arguments passed directly:
 
 ```bash
-docker run --rm autopilot-cost-analyzer version
+docker run --rm gke-cost-analyzer version
 
-docker run --rm autopilot-cost-analyzer record \
+docker run --rm gke-cost-analyzer record \
   --region us-central1 \
   --project my-gcp-project \
   --cluster-name my-cluster
@@ -59,7 +59,7 @@ The tool needs read access to pods and nodes. It does not create, modify, or del
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: autopilot-cost-analyzer
+  name: gke-cost-analyzer
 rules:
 - apiGroups: [""]
   resources: ["pods", "nodes"]
@@ -68,14 +68,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: autopilot-cost-analyzer
+  name: gke-cost-analyzer
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: autopilot-cost-analyzer
+  name: gke-cost-analyzer
 subjects:
 - kind: ServiceAccount
-  name: autopilot-cost-analyzer
+  name: gke-cost-analyzer
   namespace: <namespace>
 ```
 
@@ -102,7 +102,7 @@ All GCP API calls use [Application Default Credentials](https://cloud.google.com
 ### Watch costs in real-time
 
 ```bash
-autopilot-cost-analyzer watch --region us-central1
+gke-cost-analyzer watch --region us-central1
 ```
 
 Options:
@@ -119,7 +119,7 @@ Options:
 First, set up the BigQuery dataset and table:
 
 ```bash
-autopilot-cost-analyzer setup \
+gke-cost-analyzer setup \
   --project my-gcp-project \
   --location US
 ```
@@ -127,7 +127,7 @@ autopilot-cost-analyzer setup \
 Then start recording:
 
 ```bash
-autopilot-cost-analyzer record \
+gke-cost-analyzer record \
   --region us-central1 \
   --project my-gcp-project \
   --cluster-name my-cluster \
@@ -176,7 +176,7 @@ ORDER BY day;
 
 ## How it works
 
-1. **Pricing**: Fetches pricing from the Cloud Billing Catalog API. For Autopilot: pod-level CPU/Memory SKUs from the Kubernetes Engine service. For standard GKE: Compute Engine per-vCPU and per-GB instance SKUs by machine family. Prices are cached locally in `~/.cache/autopilot-cost-analyzer/` for 24 hours.
+1. **Pricing**: Fetches pricing from the Cloud Billing Catalog API. For Autopilot: pod-level CPU/Memory SKUs from the Kubernetes Engine service. For standard GKE: Compute Engine per-vCPU and per-GB instance SKUs by machine family. Prices are cached locally in `~/.cache/gke-cost-analyzer/` for 24 hours.
 
 2. **Pod and node data**: Lists running pods (and nodes for standard GKE) from the current kubeconfig context, extracting CPU/memory requests, labels, start time, node placement, and Spot detection.
 
@@ -250,7 +250,7 @@ a static `linux/amd64` binary, and creates a GitHub Release with changelog notes
    git push origin main vX.Y.Z
    ```
 
-4. **Verify.** The [Release](https://github.com/samn/autopilot-cost-analyzer/actions/workflows/release.yaml)
+4. **Verify.** The [Release](https://github.com/samn/gke-cost-analyzer/actions/workflows/release.yaml)
    action will build the binary and create the GitHub Release. The release body
    is extracted automatically from the matching `CHANGELOG.md` section.
 

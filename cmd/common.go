@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/kube"
-	"github.com/samn/autopilot-cost-analyzer/internal/pricing"
-	"github.com/samn/autopilot-cost-analyzer/internal/prometheus"
+	"github.com/samn/gke-cost-analyzer/internal/kube"
+	"github.com/samn/gke-cost-analyzer/internal/pricing"
+	"github.com/samn/gke-cost-analyzer/internal/prometheus"
 )
 
 func TestAggregateSingleGroup(t *testing.T) {

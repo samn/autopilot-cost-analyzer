@@ -8,7 +8,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
 )
 
 // Config holds tunable parameters for trend detection.

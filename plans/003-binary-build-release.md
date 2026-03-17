@@ -56,7 +56,7 @@ make build
 make build GOOS=darwin GOARCH=arm64
 
 # Check version info
-./dist/autopilot-cost-analyzer-linux-amd64 version
+./dist/gke-cost-analyzer-linux-amd64 version
 ```
 
 ## Adding More Platforms
@@ -73,4 +73,4 @@ strategy:
         goarch: arm64
 ```
 
-Each combination produces `dist/autopilot-cost-analyzer-<os>-<arch>`.
+Each combination produces `dist/gke-cost-analyzer-<os>-<arch>`.

@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 
-	"github.com/samn/autopilot-cost-analyzer/internal/cost"
-	"github.com/samn/autopilot-cost-analyzer/internal/trend"
+	"github.com/samn/gke-cost-analyzer/internal/cost"
+	"github.com/samn/gke-cost-analyzer/internal/trend"
 )
 
 var (
