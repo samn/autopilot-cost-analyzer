@@ -28,13 +28,13 @@ func TestEnsureDatasetCreatesNew(t *testing.T) {
 	defer srv.Close()
 
 	sc := NewSetupClient("my-project", WithSetupBaseURL(srv.URL))
-	err := sc.EnsureDataset(context.Background(), "autopilot_costs", "US")
+	err := sc.EnsureDataset(context.Background(), "gke_costs", "US")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if receivedBody.DatasetReference.DatasetID != "autopilot_costs" {
-		t.Errorf("dataset ID = %s, want autopilot_costs", receivedBody.DatasetReference.DatasetID)
+	if receivedBody.DatasetReference.DatasetID != "gke_costs" {
+		t.Errorf("dataset ID = %s, want gke_costs", receivedBody.DatasetReference.DatasetID)
 	}
 	if receivedBody.Location != "US" {
 		t.Errorf("location = %s, want US", receivedBody.Location)
@@ -49,7 +49,7 @@ func TestEnsureDatasetAlreadyExists(t *testing.T) {
 	defer srv.Close()
 
 	sc := NewSetupClient("my-project", WithSetupBaseURL(srv.URL))
-	err := sc.EnsureDataset(context.Background(), "autopilot_costs", "US")
+	err := sc.EnsureDataset(context.Background(), "gke_costs", "US")
 	if err != nil {
 		t.Fatalf("expected no error for existing dataset, got: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestEnsureTableCreatesNew(t *testing.T) {
 	var receivedBody tableRequest
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		expectedPath := "/projects/my-project/datasets/autopilot_costs/tables"
+		expectedPath := "/projects/my-project/datasets/gke_costs/tables"
 		if r.URL.Path != expectedPath {
 			t.Errorf("path = %s, want %s", r.URL.Path, expectedPath)
 		}
@@ -71,7 +71,7 @@ func TestEnsureTableCreatesNew(t *testing.T) {
 	defer srv.Close()
 
 	sc := NewSetupClient("my-project", WithSetupBaseURL(srv.URL))
-	err := sc.EnsureTable(context.Background(), "autopilot_costs", "cost_snapshots")
+	err := sc.EnsureTable(context.Background(), "gke_costs", "cost_snapshots")
 	if err != nil {
 		t.Fatal(err)
 	}

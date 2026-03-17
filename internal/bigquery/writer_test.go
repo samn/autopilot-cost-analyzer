@@ -18,7 +18,7 @@ func TestWriteSnapshots(t *testing.T) {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
 
-		expectedPath := "/projects/my-project/datasets/autopilot_costs/tables/cost_snapshots/insertAll"
+		expectedPath := "/projects/my-project/datasets/gke_costs/tables/cost_snapshots/insertAll"
 		if r.URL.Path != expectedPath {
 			t.Errorf("path = %s, want %s", r.URL.Path, expectedPath)
 		}
@@ -32,7 +32,7 @@ func TestWriteSnapshots(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	writer := NewWriter("my-project", "autopilot_costs", "cost_snapshots",
+	writer := NewWriter("my-project", "gke_costs", "cost_snapshots",
 		WithWriterBaseURL(srv.URL))
 
 	snapshots := []CostSnapshot{
