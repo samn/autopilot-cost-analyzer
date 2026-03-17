@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Release binaries are now gzip-compressed for faster downloads
+
 ### Changed
 - Renamed project from `autopilot-cost-analyzer` to `gke-cost-analyzer` to reflect support for both Autopilot and Standard GKE workloads
 - Go module path changed from `github.com/samn/autopilot-cost-analyzer` to `github.com/samn/gke-cost-analyzer`

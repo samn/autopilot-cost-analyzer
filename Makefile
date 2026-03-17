@@ -14,7 +14,7 @@ LDFLAGS   := -s -w \
 
 DIST_DIR  := dist
 
-.PHONY: build clean test lint
+.PHONY: build compress clean test lint
 
 ## build: Compile the binary for the target OS/arch (default: linux/amd64).
 build:
@@ -22,6 +22,10 @@ build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 	  go build -trimpath -ldflags "$(LDFLAGS)" \
 	  -o $(DIST_DIR)/$(BINARY)-$(GOOS)-$(GOARCH) .
+
+## compress: Gzip the built binary for distribution.
+compress: build
+	gzip -f $(DIST_DIR)/$(BINARY)-$(GOOS)-$(GOARCH)
 
 ## test: Run all tests with race detection.
 test:
