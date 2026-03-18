@@ -757,8 +757,9 @@ func TestAggregatedToSnapshotUtilizationFields(t *testing.T) {
 		t.Errorf("WastedCost = %v, want 0.35", snap.WastedCost)
 	}
 
-	// Without utilization data — all nullable fields should be nil
+	// Without utilization data and no overhead — all nullable fields should be nil
 	agg.HasUtilization = false
+	agg.WastedCostPerHour = 0
 	snap = aggregatedToSnapshot(agg, time.Now(), sc, 3600)
 
 	if snap.CPUUtilization != nil {

@@ -745,3 +745,74 @@ func TestAggregateWithUtilizationZeroCost(t *testing.T) {
 		t.Errorf("WastedCostPerHour = %f, want 0 for zero cost", agg.WastedCostPerHour)
 	}
 }
+
+func TestAggregateNodeOverheadInWaste(t *testing.T) {
+	lc := LabelConfig{TeamLabel: "team", WorkloadLabel: "app"}
+	usage := map[prometheus.PodKey]prometheus.PodUsage{
+		{Namespace: "default", Pod: "pod-1"}: {CPUCores: 0.5, MemoryBytes: 500e6},
+	}
+
+	costs := []PodCost{
+		{
+			Pod:                 kube.NewTestPodInfoOnNode("pod-1", "default", 1000, 1000, time.Now(), false, map[string]string{"team": "a", "app": "svc"}, "gke-node-1"),
+			CostPerHour:         1.0,
+			CPUCostPerHour:      0.6,
+			MemCostPerHour:      0.4,
+			OverheadCostPerHour: 0.5, // 50% of cost is from node overhead
+		},
+	}
+
+	aggs := AggregateWithUtilization(costs, lc, usage)
+	if len(aggs) != 1 {
+		t.Fatalf("expected 1 group, got %d", len(aggs))
+	}
+
+	agg := aggs[0]
+	if !approxEqual(agg.NodeOverheadCostPerHour, 0.5, 0.001) {
+		t.Errorf("NodeOverheadCostPerHour = %f, want 0.5", agg.NodeOverheadCostPerHour)
+	}
+
+	// WastedCostPerHour = CostPerHour × (1 - efficiency). The efficiency
+	// formula operates on the overhead-inflated CostPerHour so overhead is
+	// implicitly captured — no double-counting.
+	if agg.WastedCostPerHour > agg.CostPerHour {
+		t.Errorf("WastedCostPerHour (%f) must not exceed CostPerHour (%f)",
+			agg.WastedCostPerHour, agg.CostPerHour)
+	}
+	if agg.WastedCostPerHour <= 0 {
+		t.Errorf("WastedCostPerHour = %f, want > 0 (pod is under-utilizing)", agg.WastedCostPerHour)
+	}
+}
+
+func TestAggregateNodeOverheadWithoutPrometheus(t *testing.T) {
+	lc := LabelConfig{TeamLabel: "team", WorkloadLabel: "app"}
+
+	costs := []PodCost{
+		{
+			Pod:                 kube.NewTestPodInfoOnNode("pod-1", "default", 1000, 1000, time.Now(), false, map[string]string{"team": "a", "app": "svc"}, "gke-node-1"),
+			CostPerHour:         1.0,
+			CPUCostPerHour:      0.6,
+			MemCostPerHour:      0.4,
+			OverheadCostPerHour: 0.3,
+		},
+	}
+
+	// No Prometheus usage data
+	aggs := AggregateWithUtilization(costs, lc, nil)
+	if len(aggs) != 1 {
+		t.Fatalf("expected 1 group, got %d", len(aggs))
+	}
+
+	agg := aggs[0]
+	if !approxEqual(agg.NodeOverheadCostPerHour, 0.3, 0.001) {
+		t.Errorf("NodeOverheadCostPerHour = %f, want 0.3", agg.NodeOverheadCostPerHour)
+	}
+	// Without Prometheus data, waste should equal just the overhead
+	if !approxEqual(agg.WastedCostPerHour, 0.3, 0.001) {
+		t.Errorf("WastedCostPerHour = %f, want 0.3 (overhead only)", agg.WastedCostPerHour)
+	}
+	// HasUtilization should still be false (no Prometheus data)
+	if agg.HasUtilization {
+		t.Error("HasUtilization should be false without Prometheus data")
+	}
+}

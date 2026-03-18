@@ -35,13 +35,17 @@ type AggregatedCost struct {
 	CPUCostPerHour float64
 	MemCostPerHour float64
 
+	// NodeOverheadCostPerHour is the portion of CostPerHour attributable to
+	// unallocated node capacity (standard GKE only). Always zero for autopilot.
+	NodeOverheadCostPerHour float64
+
 	// Utilization fields — populated when Prometheus data is available.
 	// Zero values indicate no utilization data.
 	HasUtilization    bool
 	CPUUtilization    float64 // ratio: actual / requested (0–1+)
 	MemUtilization    float64 // ratio: actual / requested (0–1)
 	EfficiencyScore   float64 // cost-weighted utilization (0–1)
-	WastedCostPerHour float64 // cost_per_hour × (1 - efficiency)
+	WastedCostPerHour float64 // cost_per_hour × (1 - efficiency), or node overhead when no Prometheus data
 }
 
 // Aggregate groups pod costs by the configured label hierarchy.
@@ -101,6 +105,7 @@ func AggregateWithUtilization(costs []PodCost, labels LabelConfig, usage map[pro
 		ga.agg.CostPerHour += pc.CostPerHour
 		ga.agg.CPUCostPerHour += pc.CPUCostPerHour
 		ga.agg.MemCostPerHour += pc.MemCostPerHour
+		ga.agg.NodeOverheadCostPerHour += pc.OverheadCostPerHour
 
 		if usage != nil {
 			podKey := prometheus.PodKey{Namespace: pc.Pod.Namespace, Pod: pc.Pod.Name}
@@ -131,7 +136,13 @@ func AggregateWithUtilization(costs []PodCost, labels LabelConfig, usage map[pro
 				ga.agg.CPUUtilization, ga.agg.MemUtilization,
 				ga.agg.CPUCostPerHour, ga.agg.MemCostPerHour, ga.agg.CostPerHour,
 			)
+			// The efficiency formula already operates on the overhead-inflated
+			// CostPerHour, so it implicitly captures node overhead waste.
+			// Do NOT add overhead on top — that would double-count.
 			ga.agg.WastedCostPerHour = ga.agg.CostPerHour * (1 - ga.agg.EfficiencyScore)
+		} else if ga.agg.NodeOverheadCostPerHour > 0 {
+			// No Prometheus data, but still have node overhead waste.
+			ga.agg.WastedCostPerHour = ga.agg.NodeOverheadCostPerHour
 		}
 		result = append(result, ga.agg)
 	}

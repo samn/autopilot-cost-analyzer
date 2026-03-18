@@ -198,6 +198,7 @@ func groupByTeam(aggs []cost.AggregatedCost) []TeamGroup {
 		tg.Summary.CPUCostPerHour += a.CPUCostPerHour
 		tg.Summary.MemCostPerHour += a.MemCostPerHour
 		tg.Summary.WastedCostPerHour += a.WastedCostPerHour
+		tg.Summary.NodeOverheadCostPerHour += a.NodeOverheadCostPerHour
 		if a.HasUtilization {
 			tg.Summary.HasUtilization = true
 		}

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Node overhead waste tracking for standard GKE workloads: unallocated node capacity is now attributed proportionally to running pods and counted as waste
+- Waste column in TUI now includes node overhead even without Prometheus utilization data
+
 ## [0.5.0] - 2026-03-17
 
 ### Changed
